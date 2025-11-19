@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Výpis dat z API{% endblock title %}
+
+{% block style %}{% static "pojistenci/vypis-api.css" %}{% endblock style %}
+
+{% block content %}
+    <div class="content-header">
+        <h1>Výpis pojištěnců z vytvořeného API</h1>
+        <p>Vytvořil jsem také API, které vrací data o všech pojištěncích ve formátu json. Endpoint je GET /api/pojistenci/{id} a prozkoumat ho lze <a href="https://vanekj.pythonanywhere.com/api/pojistenci/">zde</a>. Níže se pak po rozkliknutí jednoho z tlačítek objeví tabulka, která obsahuje právě data, která jsou tam naplněna pomocí JS (je tam fetch("/api/pojistenci/")) kde voláme právě toto vytvořené API, které vrací data o pojištěncích. Vybral jsem jen Jména + Email nebo tel., může tam samozřejmě být i cokoli jiného z naší databáze.</p>
+        <div class="button-group">
+            <button id="btn-email">Jména s e-maily</button>
+            <button id="btn-phone">Jména s telefony</button>
+        </div>
+    </div>
+  <!-- Tabulka, ze začátku skrytá -->
+  <table id="api-table" border="1" cellpadding="4" style="display: none;">
+    <thead>
+      <tr>
+        <th>Jméno</th>
+        <th>Příjmení</th>
+        <th class="col-detail">Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+        {% for p in pojistenci %}
+            <tr>
+                <td data-label="Jméno">{{ p.first_name }}</td>
+                <td data-label="Příjmení">{{ p.last_name }}</td>
+                <td data-label="E-mail">{{ p.email }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+  </table>
+
+  <script>
+    let pojistenciData = [];
+
+    // Funkce k vykreslení tabulky podle módu
+    function renderTable(mode) {
+      const table    = document.getElementById("api-table");
+      const tbody    = table.querySelector("tbody");
+      const thDetail = table.querySelector("thead .col-detail");
+
+      // Zobrazit tabulku (pokud je skrytá)
+      table.style.display = "";
+
+      // Upravit nadpis detailního sloupce
+      thDetail.textContent = (mode === 'email') ? 'E-mail' : 'Telefon';
+
+      // Vyčistit řádky
+      tbody.innerHTML = "";
+
+      // Naplnit novými daty
+      pojistenciData.forEach(p => {
+        const tr = document.createElement("tr");
+        tr.insertAdjacentHTML("beforeend", `
+          <td>${p.first_name}</td>
+          <td>${p.last_name}</td>
+        `);
+        const detail = (mode === 'email') ? p.email : p.phone;
+        tr.insertAdjacentHTML("beforeend", `<td>${detail}</td>`);
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Načteme data z API hned, ale tabulku zatím nenecháme vykreslit
+    fetch("/api/pojistenci/")
+      .then(r => r.json())
+      .then(data => {
+        pojistenciData = data;
+        // tabulka zůstává skrytá, render provolá až uživatel klikne
+      })
+      .catch(err => {
+        console.error("Chyba při načítání API:", err);
+        const tbody = document.querySelector("#api-table tbody");
+        tbody.innerHTML = "<tr><td colspan='3'>Nepodařilo se načíst data z API</td></tr>";
+        // i tak tabulku zobrazíme, aby uživatel viděl zprávu
+        document.getElementById("api-table").style.display = "";
+      });
+
+    // Přepínání režimu na klik tlačítek
+    document.getElementById("btn-email").addEventListener("click", () => {
+      renderTable('email');
+    });
+    document.getElementById("btn-phone").addEventListener("click", () => {
+      renderTable('phone');
+    });
+  </script>
+{% endblock %}

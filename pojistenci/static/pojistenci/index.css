@@ -1,0 +1,81 @@
+/* Hlavní obal */
+.homepage-obsah {
+    max-width: 800px;
+    margin: 60px auto 40px;
+    padding: 0 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    animation: fadeIn 0.8s ease-in;
+}
+
+/* Nadpis */
+.homepage-nadpis {
+    font-size: 2rem;
+    margin-bottom: 20px;
+    color: #003366;
+    text-align: center;
+    animation: slideDown 0.6s ease-out;
+}
+
+/* Popis pod nadpisem */
+.homepage-popis {
+    font-size: 1.1rem;
+    color: #333;
+    margin-bottom: 30px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* Seznam */
+.homepage-seznam {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.homepage-seznam li {
+    background-color: #f5f5f5; /* světle šedá místo modré */
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-left: 4px solid #007acc; /* decentní prvek bez efektu tlačítka */
+    border-radius: 4px;
+    font-size: 1rem;
+    color: #333;
+    transform: translateX(-20px);
+    opacity: 0;
+    animation: slideIn 0.4s ease forwards;
+}
+
+.homepage-seznam li:nth-child(1) { animation-delay: 0.1s; }
+.homepage-seznam li:nth-child(2) { animation-delay: 0.2s; }
+.homepage-seznam li:nth-child(3) { animation-delay: 0.3s; }
+.homepage-seznam li:nth-child(4) { animation-delay: 0.4s; }
+.homepage-seznam li:nth-child(5) { animation-delay: 0.5s; }
+.homepage-seznam li:nth-child(6) { animation-delay: 0.6s; }
+.homepage-seznam li:nth-child(7) { animation-delay: 0.7s; }
+.homepage-seznam li:nth-child(8) { animation-delay: 0.8s; }
+.homepage-seznam li:nth-child(9) { animation-delay: 0.9s; }
+.homepage-seznam li:nth-child(10) { animation-delay: 1s; }
+
+/* Animace */
+@keyframes slideIn {
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

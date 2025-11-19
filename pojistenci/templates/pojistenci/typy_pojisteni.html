@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Přidání nového typu pojištění{% endblock title %}
+{% block style %} {% static "pojistenci/novy_typ_pojisteni.css" %} {% endblock style %}
+{% block content %}
+    <h1 class="nadpis">Přidání nového typu pojištění</h1>
+
+    <p class="info-text">V současnosti jsou v databázi následující typy pojištění, které lze přiřadit jednotlivým pojištěncům:</p>
+
+    <table class="typ-pojisteni-table">
+        <thead>
+            <tr>
+                <th>Typ Pojištění</th>
+                <th>Akce</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if typy_pojisteni %}
+                {% for typ in typy_pojisteni %}
+                    <tr>
+                        <td>{{ typ.nazev }}</td>
+
+                        <td class="akce">
+                            <a href="{% url 'smazat-typ-pojisteni' typ.id %}" class="btn delete">Smazat</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="2">Zatím v databázi není žádný typ pojištění.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li class="message {{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <p class="pridat">Níže můžete přidat nový typ pojištění:</p>
+    <form method="post" class="formular">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn submit-btn">Přidat typ pojištění</button>
+    </form>
+
+    <script>
+        // Počkej 5 vteřin a pak skryj všechny hlášky
+        setTimeout(function() {
+          const messages = document.querySelectorAll('.message');
+          messages.forEach(function(msg) {
+            msg.style.transition = 'opacity 1s ease';
+            msg.style.opacity = '0';
+            setTimeout(() => msg.remove(), 1000); // odstraní z DOMu po vyblednutí
+          });
+        }, 5000);
+    </script>
+{% endblock content %}

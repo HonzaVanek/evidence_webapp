@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Přidání pojištění{% endblock title %}
+
+{% block style %}{% static "pojistenci/nove_pojisteni.css" %}{% endblock style %}
+
+{% block content %}
+<h1 class="nadpis">Formulář pro přidání pojištění pro {{ pojistenec.first_name }} {{ pojistenec.last_name }}</h1>
+
+<form method="post" class="formular">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn submit-btn">Přidat pojištění</button>
+</form>
+<a href="{% url 'pojistenec_detail' pojistenec.id %}">Zpět na detail pojištěnce</a>
+{% endblock content %}

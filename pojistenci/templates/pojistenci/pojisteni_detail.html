@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Detail Pojištění - {{ pojisteni.predmet }}{% endblock title %}
+
+{% block style %}{% static "pojistenci/pojisteni_detail.css" %}{% endblock style %}
+
+{% block content %}
+<div class="detail-container">
+    <h1 class="nadpis">Detail pojištění: "{{ pojisteni.predmet }}"</h1>
+
+    <div class="info-flex">
+        <div class="info-block">
+            <p><strong>Pojištěnec: </strong><a href="{% url 'pojistenec_detail' pojisteni.pojistenec.id %}">{{ pojisteni.pojistenec.first_name }} {{ pojisteni.pojistenec.last_name }}</a> </p>
+            <p><strong>Typ pojištění:</strong> {{ pojisteni.typ }}</p>
+            <p><strong>Předmět pojištění:</strong> {{ pojisteni.predmet }}</p>
+            <p><strong>Částka:</strong> {{ pojisteni.castka|floatformat:0 }} Kč</p>
+            <p><strong>Platnost od:</strong> {{ pojisteni.platnost_od|date:"d. m. Y" }}</p>
+            <p><strong>Platnost do:</strong> {{ pojisteni.platnost_do|date:"d. m. Y" }}</p>
+        </div>
+    </div>
+
+    <div class="tlacitko-akce">
+        <a href="{% url 'pojisteni-vypis' %}" class="btn">na seznam všech sjednaných pojištění</a>
+    </div>
+</div>
+{% endblock content %}

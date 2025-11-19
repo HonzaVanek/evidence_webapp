@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load static %}
+
+
+
+{% block title %}Přihlášení{% endblock title %}
+{% block style %}{% static "pojistenci/login.css" %}{% endblock style %}
+{% block content %}
+<div class="login-container">
+    <h1>Přihlášení</h1>
+    <form method="post">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="form-error">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="form-group">
+            <input type="text" name="username" id="id_username" required placeholder=" " />
+            <label for="id_username">Uživatelské jméno</label>
+        </div>
+        <div class="form-group">
+            <input type="password" name="password" id="id_password" required placeholder=" " />
+            <label for="id_password">Heslo</label>
+        </div>
+        <button type="submit" class="btn">Přihlásit se</button>
+    </form>
+</div>
+{% endblock content %}
+

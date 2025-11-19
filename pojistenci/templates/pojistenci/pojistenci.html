@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Pojištěnci{% endblock title %}
+
+{% block style %}{% static "pojistenci/pojistenci.css" %}{% endblock style %}
+
+{% block content %}
+<h1 class="nadpis">Seznam pojištěnců</h1>
+<p class="popis-stranky">Tato stránka obsahuje seznam pojištěnců, uložených v SQL Lite databázi. Každého jednotlivce lze rozkliknout a zobrazit detaily, včetně nahrané fotografie, pojištěnce lze editovat, odstranit nebo přidat nového. Po&nbsp;rozkliknutí pojištěnce je také možné připojit k němu konkrétní pojištění (propojení SQL tabulek 1:N)</p>
+<div class="novy-pojistenec-container">
+    <a href="{% url "novy_pojistenec" %}" class="btn novy-pojistenec">Nový pojištěnec</a>
+</div>
+
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li class="message {{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+<div class="search-container">
+  <form method="get" class="search-form">
+    <input
+      type="text"
+      name="search"
+      value="{{ search_query }}"
+      placeholder="Hledat podle jména, příjmení, ulice, města …"
+      class="search-input"
+    />
+    <button type="submit" class="btn search-btn">Hledat</button>
+  </form>
+</div>
+
+<table class="pojistenci-table">
+    <thead>
+        <tr>
+            <th>Jméno</th>
+            <th>Bydliště</th>
+            <th>Akce</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pojistenec in page_obj %}
+        <tr>
+            <td><a href="{% url 'pojistenec_detail' pojistenec.id %}">{{ pojistenec.first_name }} {{ pojistenec.last_name }}</a></td>
+            <td>{{ pojistenec.address_street }}, {{ pojistenec.address_city }} {{ pojistenec.psc }}</td>
+            <td class="akce">
+                <a href="{% url 'uprav-pojistence' pojistenec.id %}" class="btn edit">Editovat</a>
+                <a href="{% url 'smazat-pojistence' pojistenec.id %}" onclick="return confirm('Opravdu chcete smazat tohoto pojištěnce?')" class="btn delete">Odstranit</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+    // Počkej 5 vteřin a pak skryj všechny hlášky
+    setTimeout(function() {
+      const messages = document.querySelectorAll('.message');
+      messages.forEach(function(msg) {
+        msg.style.transition = 'opacity 1s ease';
+        msg.style.opacity = '0';
+        setTimeout(() => msg.remove(), 1000); // odstraní z DOMu po vyblednutí
+      });
+    }, 5000);
+</script>
+  
+
+<div class="pagination">
+    
+    <div class="pagination-links">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; první</a>
+            <a href="?page={{ page_obj.previous_page_number }}">‹ předchozí</a>
+        {% endif %}
+
+        <span class="current-page">Stránka {{ page_obj.number }} z {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">další ›</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">poslední &raquo;</a>
+        {% endif %}
+    <p class='celkovy_pocet'>Celkový počet pojištěnců: {{ total_count }}</p>
+    </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,10 @@
+Ahoj {{ user.username }},
+
+děkujeme za registraci. Pro aktivaci klikni na tento odkaz:
+
+{{ activation_link }}
+
+Jestli je to nějakej haluz a tenhle mail jsi dostal omylem, tak sry :)
+
+S pozdravem,
+Tvůj blablabla

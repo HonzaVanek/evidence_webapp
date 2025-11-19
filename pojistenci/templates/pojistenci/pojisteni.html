@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sjednaná Pojištění{% endblock title %}
+
+{% block style %}{% static "pojistenci/pojisteni.css" %}{% endblock style %}
+
+{% block content %}
+<h1 class="nadpis">Seznam sjednaných pojištění</h1>
+<p class="typ-pojisteni">Tato stránka obsahuje seznam všech sjednaných pojištění. Administrátor může editovat typy pojištění <a href="{% url 'pridej-typ-pojisteni' %}">zde</a></p>
+
+<table class="pojisteni-table">
+    <thead>
+        <tr>
+            <th>Typ</th>
+            <th>Předmět</th>
+            <th>Pojištěnec</th>
+            <th>Částka</th>
+            <th>Platnost do</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pojisteni in page_obj %}
+        <tr {% if pojisteni.platnost_do < today %}class='expired'{% endif %}>
+            <td>{{ pojisteni.typ }}</td>
+            <td><a href="{% url 'pojisteni_detail' pojisteni.id %}">{{ pojisteni.predmet }}</a></td>
+            <td><a href="{% url 'pojistenec_detail' pojisteni.pojistenec.id %}">{{ pojisteni.pojistenec.first_name }} {{ pojisteni.pojistenec.last_name }}</a></td>
+            <td>{{ pojisteni.castka|floatformat:0 }}&nbspKč</td>
+            <td>{{ pojisteni.platnost_do|date:"d. m. Y" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>  
+
+<div class="pagination">
+    
+    <div class="pagination-links">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; první</a>
+            <a href="?page={{ page_obj.previous_page_number }}">‹ předchozí</a>
+        {% endif %}
+
+        <span class="current-page">Stránka {{ page_obj.number }} z {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">další ›</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">poslední &raquo;</a>
+        {% endif %}
+    <p class='celkovy_pocet'>Celkový počet sjednaných pojištění: {{ total_count }}</p>
+    </div>
+</div>
+{% endblock content %}

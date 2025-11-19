@@ -1,0 +1,147 @@
+.menu li.aktivni_pojistenci a::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 4px;
+    background-color: white;
+    bottom: -4px;  /* TADY přidáme mezeru */
+    left: 0;
+}
+
+.detail-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 30px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.nadpis {
+    font-size: 2.2rem;
+    font-weight: bold;
+    margin-bottom: 30px;
+    color: #2c3e50;
+    text-align: center;
+}
+
+.info-flex {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+    gap: 20px;
+}
+
+.adresa,
+.kontakt {
+    flex: 1;
+    min-width: 250px;
+    font-size: 1rem;
+    color: #333;
+}
+
+.sekce-nadpis {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #444;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 5px;
+}
+
+.foto {
+    flex: 1;
+    min-width: 250px;
+    text-align: center;
+}
+
+.aktualni-foto {
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    max-width: 220px;
+    margin: 0 auto;
+}
+
+.aktualni-foto img {
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+
+
+.pojisteni-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+}
+
+.pojisteni-table th,
+.pojisteni-table td {
+    border: 1px solid #ddd;
+    padding: 10px 15px;
+    text-align: left;
+}
+
+.pojisteni-table th {
+    background-color: #f4f4f4;
+    font-weight: 600;
+}
+
+.akce {
+    display: flex;
+    flex-wrap: wrap; /* Umožní zalomení tlačítek, pokud není dostatek místa */
+    gap: 5px; /* Přidá menší mezery mezi tlačítky */
+    justify-content: flex-start; /* Zarovná tlačítka doleva */
+}
+
+.akce .btn {
+    flex: 0 1 auto; /* Tlačítka budou mít přirozenou velikost podle obsahu */
+    text-align: center; /* Zarovná text tlačítek na střed */
+    min-width: auto; /* Zruší pevnou minimální šířku */
+}
+
+.btn {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.95rem;
+    transition: background-color 0.3s ease;
+}
+
+.btn.pridat-pojisteni {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn.pridat-pojisteni:hover {
+    background-color: #2980b9;
+}
+
+.btn.edit {
+    background-color: #f1c40f;
+    color: #000;
+}
+
+.btn.edit:hover {
+    background-color: #d4ac0d;
+}
+
+.btn.delete {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn.delete:hover {
+    background-color: #c0392b;
+}
+
+.tlacitka-akce {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Úprava dat pojištěnce {{ pojistenec.first_name }} {{ pojistenec.last_name }}{% endblock title %}
+
+{% block style %}{% static "pojistenci/editace-pojistence.css" %}{% endblock style %}
+
+{% block content %}
+<h1 class="nadpis">Úprava stávajícího pojištěnce</h1>
+
+<form method="post" enctype="multipart/form-data" class="formular">
+    {% csrf_token %}
+
+    <div class="form-group">
+        <label for="pojistenec.first_name">Jméno:</label>
+        <input type="text" id="pojistenec.first_name" name="pojistenec.first_name" value="{{ pojistenec.first_name }}" class="form-control">
+    </div>
+
+    <div class="form-group">
+        <label for="pojistenec.last_name">Příjmení:</label>
+        <input type="text" id="pojistenec.last_name" name="pojistenec.last_name" value="{{ pojistenec.last_name }}" class="form-control">
+    </div>
+
+    <div class="form-group">
+        <label for="pojistenec.address_street">Ulice a číslo:</label>
+        <input type="text" id="pojistenec.address_street" name="pojistenec.address_street" value="{{ pojistenec.address_street }}" class="form-control">
+    </div>
+
+    <div class="form-group">
+        <label for="pojistenec.address_city">Město:</label>
+        <input type="text" id="pojistenec.address_city" name="pojistenec.address_city" value="{{ pojistenec.address_city }}" class="form-control">
+    </div>
+
+    <div class="form-group">
+        <label for="pojistenec.psc">PSČ:</label>
+        <input type="text" id="pojistenec.psc" name="pojistenec.psc" value="{{ pojistenec.psc }}" class="form-control">
+    </div>
+
+    <div class="form-group">
+        <label for="pojistenec.phone">Telefon:</label>
+        <input type="text" id="pojistenec.phone" name="pojistenec.phone" value="{{ pojistenec.phone }}" class="form-control">
+    </div>
+
+    <div class="form-group">
+        <label for="pojistenec.email">Email:</label>
+        <input type="email" id="pojistenec.email" name="pojistenec.email" value="{{ pojistenec.email }}" class="form-control">
+    </div>
+
+    <div class="form-group">
+        <label for="foto">Fotografie:</label>
+        {% if pojistenec.foto %}
+        <div class="aktualni-foto">
+            <p>Aktuální fotografie:</p>
+            <img id="preview-foto" src="{{ pojistenec.foto.url }}" alt="Fotografie pojištěnce" style="max-width: 200px; height: auto; margin-bottom: 10px;">
+        </div>
+        {% endif %}
+        <input type="file" id="foto" name="foto" class="form-control">
+    </div>
+
+    <button type="submit" class="btn submit-btn">Uložit změny</button>
+</form>
+
+<a href="{% url 'pojistenci' %}" class="btn zpet-btn">Zpět na výpis všech pojištěnců</a>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fileInput = document.getElementById('foto');
+        const aktualniFotoDiv = document.querySelector('.aktualni-foto');
+        const maxSizeMB = 3;
+        const allowedExtensions = ['jpg', 'jpeg', 'png'];
+    
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+    
+            // Nejprve smažeme staré hlášky
+            const oldError = document.getElementById('foto-error');
+            if (oldError) {
+                oldError.remove();
+            }
+    
+            if (file) {
+                const fileName = file.name.toLowerCase();
+                const fileSizeMB = file.size / (1024 * 1024);
+                const extension = fileName.split('.').pop();
+    
+                if (!allowedExtensions.includes(extension)) {
+                    showError('Soubor musí být typu JPG, JPEG nebo PNG.');
+                    fileInput.value = ''; // Vymažeme nevhodný soubor
+                    return;
+                }
+    
+                if (fileSizeMB > maxSizeMB) {
+                    showError(`Soubor je příliš velký. Max. velikost souboru je ${maxSizeMB} MB.`);
+                    fileInput.value = '';
+                    return;
+                }
+    
+                // Pokud je soubor v pořádku, zobrazíme náhled
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    aktualniFotoDiv.innerHTML = `
+                        <p>Nová fotografie:</p>
+                        <img src="${e.target.result}" alt="Náhled fotografie" style="max-width: 200px; height: auto; margin-bottom: 10px;">
+                    `;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    
+        function showError(message) {
+            const errorP = document.createElement('p');
+            errorP.id = 'foto-error';
+            errorP.style.color = 'red';
+            errorP.style.marginTop = '10px';
+            errorP.textContent = message;
+            fileInput.parentElement.appendChild(errorP);
+        }
+    });
+    </script>
+{% endblock content %}

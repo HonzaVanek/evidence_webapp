@@ -1,0 +1,50 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="cz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock title %}</title>
+    <link rel="stylesheet" href="{% static "style.css" %}" type="text/css" />
+    <link rel="stylesheet" href="{% block style %}{% endblock style %}" type="text/css" />
+    <link rel="icon" href="{% static 'favicon_pojistenci.png' %}" type="image/png">
+</head>
+
+<body>
+    <header>
+        <a href="{% url "homepage" %}" style="text-decoration: none; color: inherit;">
+            <div id="nazev_aplikace">
+                <h1>Správa<span>Pojištěnců</span></h1>
+                <small>aplikace pro správu pojištěnců</small>
+            </div>
+        </a>
+        <nav class='menu'>
+            <ul>
+                <li class='aktivni_pojistenci'><a href="{% url "pojistenci" %}">Pojištěnci</a></li>
+                <li class='aktivni_pojisteni'><a href="{% url "pojisteni-vypis" %}">Pojištění</a></li>
+                <li class='aktivni_API'><a href="{% url "vypis-api" %}">API</a></li>
+                <li class='aktivni_o_aplikaci'><a href="{% url "o-aplikaci" %}">O aplikaci...</a></li>
+            </ul>
+        </nav>
+        <nav class='prihlaseni_registrace'>
+            <ul>
+                {% if request.user.is_authenticated %}
+                    <li><span class="user-info">Přihlášen: {{ request.user.username }}</span></li>
+                    <li>
+                        <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-logout">Odhlásit</button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li class='aktivni_prihlaseni'><a href="{% url 'login' %}">Přihlásit</a></li>
+                    <li class='aktivni_registrace'><a href="{% url 'registrace' %}">Registrovat</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+    {% block content %}
+
+    {% endblock content %}
+</body>
+</html>

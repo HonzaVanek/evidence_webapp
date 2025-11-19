@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Hromadný import pojištěnců{% endblock title %}
+{% block style %}{% static "pojistenci/bulk_upload.css" %}{% endblock style %}
+
+{% block content %}
+  <h1 class="nadpis">Hromadný Import pojištěnců pomocí Excelu</h1>
+  <p class="popis">Nahrajte .xlsx soubor s hlavičkami <code>Jméno, Příjmení, Ulice, Město, PSČ, Telefon, Email</code>.</p>
+  <p class="popis">
+    <strong>Vzorový soubor, do kterého stačí vložit vaše data, můžete stáhnout 
+  <a href="{% static 'bulk_pojistenci_template.xlsx' %}" download>zde</a>.</strong>
+  </p>
+  {% if messages %}
+  <ul class="messages">
+    {% for message in messages %}
+      <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>
+        {{ message }}
+      </li>
+    {% endfor %}
+  </ul>
+    {% endif %}
+  <form method="post" enctype="multipart/form-data" class="formular">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="form-group">
+      {{ form.file.label_tag }}
+      {{ form.file }}
+      {{ form.file.errors }}
+    </div>
+    <button type="submit" class="btn submit-btn">Importovat</button>
+  </form>
+{% endblock content %}

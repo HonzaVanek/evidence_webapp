@@ -1,0 +1,6 @@
+Ahoj {{ user.username }},
+
+Registroval ses v naší aplikaci. Zatím nebudeme na nic klikat, protože implementovat aktivační mail mi přišlo zatím moc složitý :D
+
+Hezký den,
+Pyčo

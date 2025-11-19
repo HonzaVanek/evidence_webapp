@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Úvodní strana{% endblock title %}
+
+{% block style %}{% static "pojistenci/index.css" %}{% endblock style %}
+
+{% block content %}
+<div class="homepage-obsah">
+    <h1 class="homepage-nadpis">Webová aplikace pro evidenci pojištěnců</h1> 
+    <p class="homepage-popis">
+        Aplikace obsahuje kompletní správu (CRUD) pojištěných (např. "Jan Novák") a jejich pojištění (např. "pojištění bytu"). CRUD lze ale provádět i přes implementované REST API. Pokračujte prosím výběrem položky z MENU nahoře.
+    </p>
+    <ul class="homepage-seznam">
+        <li>Vytvoření pojištěného</li>
+        <li>Zobrazení detailu pojištěného včetně jeho pojištění</li>
+        <li>Zobrazení detailu pojištění</li>
+        <li>Zobrazení seznamu pojištěných</li>
+        <li>Odstranění pojištěného včetně všech jeho pojištění</li>
+        <li>Odstranění pojištění</li>
+        <li>Editace pojištěného</li>
+        <li>Editace pojištění pojištěného</li>
+        <li>Dané entity jsou uloženy v SQL databázi</li>
+        <li>Aplikace je naprogramována podle dobrých praktik a je plně responzivní</li>
+    </ul>
+</div>   
+{% endblock content %}

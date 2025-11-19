@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Detail Pojištěnce {{ jmeno }} {{ prijmeni }}{% endblock title %}
+
+{% block style %}{% static "pojistenci/pojistenec_detail.css" %}{% endblock style %}
+
+{% block content %}
+<div class="detail-container">
+    <h1 class="nadpis">{{ jmeno }} {{ prijmeni }}</h1>
+
+    <div class="info-flex">
+        <div class="adresa">
+            <p><strong>Adresa:</strong></p>
+            <p>{{ ulice }}</p>
+            <p>{{ mesto }} {{ psc }}</p>
+        </div>
+        <div class="kontakt">
+            {% if email %}<p><strong>Email:</strong> {{ email }}</p>{% endif %}
+            {% if tel %}<p><strong>Telefon:</strong> {{ tel }}</p>{% endif %}
+        </div>
+        <div class="foto">
+            {% if foto %}
+                <div class="aktualni-foto">                    
+                    <img src="{{ foto.url }}" alt="Fotografie pojištěnce" style="max-width: 200px; height: auto; margin-bottom: 10px;">
+                </div>
+            {% else %}
+                <div class="aktualni-foto">
+                    <p>Fotografie zatím nebyla nahrána.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li class="message {{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <h2 class="sekce-nadpis">Sjednaná Pojištění</h2>
+    <table class="pojisteni-table">
+        <thead>
+            <tr>
+                <th>Pojištění</th>
+                <th>Částka</th>
+                <th>Platnost</th>
+                <th>Akce</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if pojisteni %}
+                {% for p in pojisteni %}
+                    <tr>
+                        <td> <a href="{% url 'pojisteni_detail' p.id %}">{{ p.typ }} – {{ p.predmet }}</a> </td>
+                        <td>{{ p.castka|floatformat:0 }}&nbspKč</td>
+                        <td>{{ p.platnost_od }} – {{ p.platnost_do }}</td>
+                        <td class="akce">
+                            <a href="{% url 'uprav-pojisteni' p.id %}" class="btn edit">Editovat</a>
+                            <a href="{% url 'smazat-pojisteni' p.id %}" class="btn delete">Smazat</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="4">Tento pojištěnec zatím nemá žádná sjednaná pojištění.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <div class="tlacitka-akce">
+        <a href="{% url 'pridat_pojisteni' id %}" class="btn pridat-pojisteni">+ Přidat pojištění</a>
+        <a href="{% url 'uprav-pojistence' id %}" class="btn edit">Upravit pojištěnce</a>
+        <a href="{% url 'smazat-pojistence' id %}" onclick="return confirm('Opravdu chcete smazat tohoto pojištěnce?')" class="btn delete">Smazat pojištěnce</a>
+    </div>
+</div>
+
+<script>
+    // Počkej 5 vteřin a pak skryj všechny hlášky
+    setTimeout(function() {
+      const messages = document.querySelectorAll('.message');
+      messages.forEach(function(msg) {
+        msg.style.transition = 'opacity 1s ease';
+        msg.style.opacity = '0';
+        setTimeout(() => msg.remove(), 1000); // odstraní z DOMu po vyblednutí
+      });
+    }, 5000);
+</script>
+{% endblock content %}
