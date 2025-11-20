@@ -19,7 +19,7 @@ from .forms import VlastniLoginForm, RegistraceForm
 from django.core.mail import send_mail, EmailMessage
 from django.template.loader import render_to_string
 from django.conf import settings
-import pandas
+from openpyxl import load_workbook
 import requests
 from django.db import transaction
 from django.db.models import Q
@@ -266,47 +266,62 @@ def bulk_upload_pojistenci(request):
         if form.is_valid():
             uploaded_excel = request.FILES['file']
             try:
-                # načteme celý sheet do DataFrame
-                dataframe = pandas.read_excel(uploaded_excel, engine='openpyxl')
+                wb = load_workbook(uploaded_excel, data_only=True)
+                sheet = wb.active
             except Exception as e:
                 form.add_error('file', f'Chyba při čtení Excelu: {e}')
             else:
+                # první řádek = hlavička
+                header = [cell.value for cell in sheet[1]]
+
                 required_columns = ['Jméno','Příjmení','Ulice','Město','PSČ','Telefon','Email']
-                missing_columns = [column for column in required_columns if column not in dataframe.columns]
-                if missing_columns:
-                    form.add_error('file', f'Excel postrádá sloupce: {", ".join(missing_columns)}')
+                missing = [col for col in required_columns if col not in header]
+
+                if missing:
+                    form.add_error('file', f'Excel postrádá sloupce: {", ".join(missing)}')
                 else:
+                    # mapa sloupců (název → index sloupce)
+                    col_map = {name: header.index(name) for name in required_columns}
+
                     created = 0
+
                     try:
                         with transaction.atomic():
-                            for row_index, row in dataframe.iterrows():
+                            for row_index, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+                                
                                 def normalize(value):
-                                    return "" if pandas.isna(value) else str(value).strip()
+                                    if value is None:
+                                        return ""
+                                    return str(value).strip()
+
                                 data = {
-                                    'first_name':     normalize(row['Jméno']),
-                                    'last_name':      normalize(row['Příjmení']),
-                                    'address_street': normalize(row['Ulice']),
-                                    'address_city':   normalize(row['Město']),
-                                    'psc':            normalize(row['PSČ']),
-                                    'phone':          normalize(row['Telefon']),
-                                    'email':          normalize(row['Email'])
+                                    'first_name':     normalize(row[col_map['Jméno']]),
+                                    'last_name':      normalize(row[col_map['Příjmení']]),
+                                    'address_street': normalize(row[col_map['Ulice']]),
+                                    'address_city':   normalize(row[col_map['Město']]),
+                                    'psc':            normalize(row[col_map['PSČ']]),
+                                    'phone':          normalize(row[col_map['Telefon']]),
+                                    'email':          normalize(row[col_map['Email']]),
                                 }
-                                uploaded_data = Pojistenec(**data)
-                                uploaded_data.full_clean()
-                                uploaded_data.save() 
+
+                                obj = Pojistenec(**data)
+                                obj.full_clean()
+                                obj.save()
                                 created += 1
+
                     except ValidationError as e:
-                        form.add_error('file', f'Chyba v řádku {row_index+2}: {e.messages[0]}')
+                        form.add_error('file',
+                            f"Chyba v řádku {row_index}: {e.messages[0]}"
+                        )
                     else:
                         messages.success(request,
-                            f"Úspěšně přidáno {created} pojištěnců.")
+                            f"Úspěšně přidáno {created} pojištěnců."
+                        )
                         return redirect('bulk-upload-pojistenci')
     else:
         form = BulkUploadForm()
 
-    return render(request, 'pojistenci/bulk_upload.html', {
-        'form': form
-    })
+    return render(request, 'pojistenci/bulk_upload.html', {'form': form})
 
 @login_required
 def vypis_api(request):
