@@ -24,5 +24,7 @@ urlpatterns = [
     path('activate/<uidb64>/<token>/', views.activate, name='activate'),
     path('pojistenci/import/', views.bulk_upload_pojistenci, name='bulk-upload-pojistenci'),
     path('pojistenci/vypis-api', views.vypis_api, name='vypis-api'),
-    path('pojistenci/o_aplikaci', views.o_aplikaci, name='o-aplikaci')
+    path('pojistenci/o_aplikaci', views.o_aplikaci, name='o-aplikaci'),
+    path('pojistenci/vychytavky', views.vychytavky, name='vychytavky'),
+    path('pojistenci/vychytavky/qr', views.generate_qr, name='generate-qr'),
 ]

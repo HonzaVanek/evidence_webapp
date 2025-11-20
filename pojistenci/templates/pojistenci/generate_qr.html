@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}generování QR kódu{% endblock title %}
+
+{% block style %}{% static "pojistenci/generate_qr.css" %}{% endblock style %}
+
+{% block content %}
+<h1 class="nadpis">Generování QR kódu</h1>
+<p>Zde je možné zadat jakýkoli text / link apod. a aplikace vygeneruje příslušný QR kód</p>
+<form method="post">
+    {% csrf_token %}
+    <label for="qr_text">Text nebo URL pro QR kód:</label><br>
+    <input type="text" id="qr_text" name="qr_text" required><br>
+    <label for="qr_size">Velikost QR kódu (1-20):</label><br>
+    <input type ="number" id="qr_size" name="qr_size" min="1" max="20" step="1" value="10" required><br><br>
+    <label for="qr_border">Tloušťka okraje QR kódu (0-10):</label><br>
+    <input type ="number" id="qr_border" name="qr_border" min="0" max="10" step="1" value="2" required><br><br>
+
+    <input type="submit" value="Generovat QR kód">
+</form>
+
+{% if qr_image_url %}
+    <h2>Vygenerovaný QR kód:</h2>
+    <img src="{{ qr_image_url }}" alt="QR kód">
+{% endif %}
+
+{% endblock content %}

@@ -29,6 +29,9 @@ from django.core.exceptions import ValidationError
 from rest_framework import viewsets
 from .serializers import PojistenecSerializer
 from rest_framework.permissions import AllowAny, IsAdminUser
+import qrcode
+from PIL import Image
+import os
 
 # Create your views here.
 
@@ -329,3 +332,31 @@ def vypis_api(request):
 
 def o_aplikaci(request):
     return render(request, 'pojistenci/o_aplikaci.html')
+
+def vychytavky(request):
+    return render(request, 'pojistenci/vychytavky.html')
+
+def generate_qr(request):
+    if request.method == 'POST':
+        data = request.POST.get('qr_text')
+        qr_size = int(request.POST.get('qr_size'))
+        qr_border = int(request.POST.get('qr_border'))
+        qr = qrcode.QRCode(version=1, box_size=qr_size, border=qr_border)
+        qr.add_data(data)
+        qr.make(fit=True)
+        image = qr.make_image(fill="black", back_color = "white")
+
+        # Uložení QR kódu do mediální složky
+        
+        filename = f"qr_code_{timezone.now().strftime('%Y%m%d%H%M%S')}.png"
+        save_dir = os.path.join(settings.MEDIA_ROOT, "qr_codes")
+        os.makedirs(save_dir, exist_ok=True)             # vytvoří složku pokud neexistuje
+        full_path = os.path.join(save_dir, filename)
+        image.save(full_path)
+
+        qr_image_url = f"{settings.MEDIA_URL}qr_codes/{filename}"
+
+        return render(request, 'pojistenci/generate_qr.html', {'qr_image_url': qr_image_url, 'data': data})
+    
+    return render(request, 'pojistenci/generate_qr.html')
+
