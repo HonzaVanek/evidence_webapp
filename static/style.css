@@ -242,3 +242,7 @@ header {
   color: #007BFF;                   /* modrý text, kontrastně */
   border-color: #ffffff;            /* zachovává rámeček */
 }
+
+html {
+    scroll-behavior: smooth;
+}

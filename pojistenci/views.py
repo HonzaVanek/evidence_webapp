@@ -336,6 +336,7 @@ def o_aplikaci(request):
 def vychytavky(request):
     return render(request, 'pojistenci/vychytavky.html')
 
+@login_required
 def generate_qr(request):
     if request.method == 'POST':
         data = request.POST.get('qr_text')

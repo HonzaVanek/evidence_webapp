@@ -8,5 +8,13 @@
 {% block content %}
 <h1 class="nadpis">Různé užitečné vychytávky v Pythonu</h1>
 <p>Tady bych si jenom chtěl zkoušet různé užitečné programy v Pythonu</p>
-<h2>generování QR kódu</h2>
+
+    <div class="tile-container">
+        <a href="{% url 'generate-qr' %}" class="tile">
+            <img src="{% static 'pojistenci/img/qr_icon.png' %}" alt="QR ikona">
+            <span>Generování QR kódu</span>
+        </a>
+    </div>
+
+
 {% endblock content %}

@@ -1,28 +1,115 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}generování QR kódu{% endblock title %}
+{% block title %}Generování QR kódu{% endblock title %}
 
 {% block style %}{% static "pojistenci/generate_qr.css" %}{% endblock style %}
 
 {% block content %}
-<h1 class="nadpis">Generování QR kódu</h1>
-<p>Zde je možné zadat jakýkoli text / link apod. a aplikace vygeneruje příslušný QR kód</p>
-<form method="post">
-    {% csrf_token %}
-    <label for="qr_text">Text nebo URL pro QR kód:</label><br>
-    <input type="text" id="qr_text" name="qr_text" required><br>
-    <label for="qr_size">Velikost QR kódu (1-20):</label><br>
-    <input type ="number" id="qr_size" name="qr_size" min="1" max="20" step="1" value="10" required><br><br>
-    <label for="qr_border">Tloušťka okraje QR kódu (0-10):</label><br>
-    <input type ="number" id="qr_border" name="qr_border" min="0" max="10" step="1" value="2" required><br><br>
 
-    <input type="submit" value="Generovat QR kód">
+<h1 class="qr-title">Generování QR kódu</h1>
+<p class="qr-subtitle">
+    Zde je možné zadat jakýkoli text / link apod. a aplikace vygeneruje příslušný QR kód
+</p>
+
+<form id="qr-form" method="post" class="qr-form">
+    {% csrf_token %}
+
+    <label for="qr_text">Text nebo URL pro QR kód:</label>
+    <input type="text" id="qr_text" name="qr_text" value="{{ data }}" required>
+
+    <label for="qr_size">Velikost QR kódu (1-20):</label>
+    <input type ="number" id="qr_size" name="qr_size" min="1" max="20" value="10" required>
+
+    <label for="qr_border">Tloušťka okraje QR kódu (0-10):</label>
+    <input type ="number" id="qr_border" name="qr_border" min="0" max="10" value="2" required>
+
+    <input type="submit" value="Generovat QR kód" class="qr-submit">
 </form>
 
 {% if qr_image_url %}
-    <h2>Vygenerovaný QR kód:</h2>
-    <img src="{{ qr_image_url }}" alt="QR kód">
+    <div id="qr-result" class="qr-output">
+        <h2>Vygenerovaný QR kód:</h2>
+        <img id="qr-image" src="{{ qr_image_url }}" alt="QR kód">
+    </div>
+
+
 {% endif %}
 
+
+
+
+<script>
+(function () {
+  // 1) Zamezíme obnově pozice scrollu prohlížečem po reloadu
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
+
+  window.addEventListener('load', () => {
+    const block = document.getElementById('qr-result');
+    if (!block) return;
+
+    const img = document.getElementById('qr-image');
+
+    // Helper: plynulý scroll na přesný offset elementu
+    function doSmoothScroll() {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const behavior = prefersReduced ? 'auto' : 'smooth';
+
+      const rect = block.getBoundingClientRect();
+      const y = rect.top + window.pageYOffset;
+
+      // window.scrollTo bývá po reloadu spolehlivější než scrollIntoView
+      window.scrollTo({ top: y, behavior });
+    }
+
+    // Počkáme na stabilizaci layoutu: fonty + 1 frame + malé zpoždění
+    async function afterLayoutStable() {
+      try {
+        if (document.fonts && document.fonts.ready) {
+          await document.fonts.ready;
+        }
+      } catch (_) { /* ignore */ }
+
+      await new Promise(r => requestAnimationFrame(r));
+      await new Promise(r => setTimeout(r, 120));
+      doSmoothScroll();
+    }
+
+    // 2) Počkáme na skutečné dekódování obrázku
+    async function waitForImage(imgEl) {
+      try {
+        if (imgEl.decode) {
+          await imgEl.decode(); // čeká až je obraz doopravdy připraven k vykreslení
+        } else {
+          // Fallback: pokud decode není, čekáme na load (pokud už není complete)
+          if (!imgEl.complete) {
+            await new Promise(res => imgEl.addEventListener('load', res, { once: true }));
+          }
+        }
+      } catch (_) {
+        // decode může vyhodit výjimku (např. chybné data), fallback na load/complete
+        if (!imgEl.complete) {
+          await new Promise(res => imgEl.addEventListener('load', res, { once: true }));
+        }
+      }
+    }
+
+    (async () => {
+      if (img) {
+        await waitForImage(img);
+        await afterLayoutStable();
+      } else {
+        await afterLayoutStable();
+      }
+    })();
+  });
+})();
+</script>
+
+
+
+
 {% endblock content %}
+
