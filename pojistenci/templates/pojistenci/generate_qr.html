@@ -40,72 +40,59 @@
 
 
 <script>
-(function () {
-  // 1) Zamezíme obnově pozice scrollu prohlížečem po reloadu
-  if ('scrollRestoration' in history) {
-    history.scrollRestoration = 'manual';
-  }
+// VLASTNÍ SMOOTH SCROLL S PLYNULÝM "EASE-IN-OUT"
+function smoothScrollTo(endY, duration = 1400) {
+    const startY = window.scrollY;
+    const distance = endY - startY;
+    let startTime = null;
 
-  window.addEventListener('load', () => {
-    const block = document.getElementById('qr-result');
-    if (!block) return;
-
-    const img = document.getElementById('qr-image');
-
-    // Helper: plynulý scroll na přesný offset elementu
-    function doSmoothScroll() {
-      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const behavior = prefersReduced ? 'auto' : 'smooth';
-
-      const rect = block.getBoundingClientRect();
-      const y = rect.top + window.pageYOffset;
-
-      // window.scrollTo bývá po reloadu spolehlivější než scrollIntoView
-      window.scrollTo({ top: y, behavior });
+    // Krásná, plynulá ease-in-out funkce
+    function easeInOut(t) {
+        return t < 0.5 
+            ? 4 * t * t * t                    // pomalý rozjezd
+            : 1 - Math.pow(-2 * t + 2, 3) / 2; // zpomalující dojezd
     }
 
-    // Počkáme na stabilizaci layoutu: fonty + 1 frame + malé zpoždění
-    async function afterLayoutStable() {
-      try {
-        if (document.fonts && document.fonts.ready) {
-          await document.fonts.ready;
-        }
-      } catch (_) { /* ignore */ }
+    function step(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const progress = timestamp - startTime;
+        const percent = Math.min(progress / duration, 1);
 
-      await new Promise(r => requestAnimationFrame(r));
-      await new Promise(r => setTimeout(r, 120));
-      doSmoothScroll();
+        const eased = easeInOut(percent);
+
+        window.scrollTo(0, startY + distance * eased);
+
+        if (percent < 1) {
+            requestAnimationFrame(step);
+        }
     }
 
-    // 2) Počkáme na skutečné dekódování obrázku
-    async function waitForImage(imgEl) {
-      try {
-        if (imgEl.decode) {
-          await imgEl.decode(); // čeká až je obraz doopravdy připraven k vykreslení
-        } else {
-          // Fallback: pokud decode není, čekáme na load (pokud už není complete)
-          if (!imgEl.complete) {
-            await new Promise(res => imgEl.addEventListener('load', res, { once: true }));
-          }
-        }
-      } catch (_) {
-        // decode může vyhodit výjimku (např. chybné data), fallback na load/complete
-        if (!imgEl.complete) {
-          await new Promise(res => imgEl.addEventListener('load', res, { once: true }));
-        }
-      }
+    requestAnimationFrame(step);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("qr-form");
+
+    // 1) Při odeslání nastavíme flag
+    if (form) {
+        form.addEventListener("submit", function () {
+            sessionStorage.setItem("qr_scroll_after_submit", "1");
+        });
     }
 
-    (async () => {
-      if (img) {
-        await waitForImage(img);
-        await afterLayoutStable();
-      } else {
-        await afterLayoutStable();
-      }
-    })();
-  });
-})();
+    // 2) Po reloadu zkontrolujeme flag
+    if (sessionStorage.getItem("qr_scroll_after_submit") === "1") {
+
+        sessionStorage.removeItem("qr_scroll_after_submit");
+
+        // počkáme 1 sekundu
+        setTimeout(() => {
+            const end = document.documentElement.scrollHeight;
+            smoothScrollTo(end, 1400); // 1.4s animace
+        }, 800);
+    }
+});
 </script>
 
 
