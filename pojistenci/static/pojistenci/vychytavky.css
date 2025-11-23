@@ -33,12 +33,13 @@ p {
     text-align: center;
 }
 
-
-/* Kontejner – zarovnání dlaždic doprostřed */
-.tile-container {
+.tiles-wrapper {
+    width: 100%;          /* <<< DŮLEŽITÉ! */
     display: flex;
     justify-content: center;
+    gap: 40px;
     margin-top: 40px;
+    flex-wrap: wrap;
 }
 
 /* Samotná dlaždice */
@@ -84,6 +85,4 @@ p {
 .tile:hover span {
     color: #0d5bb5;
 }
-
-
 

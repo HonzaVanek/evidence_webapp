@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Donut graf{% endblock title %}
+
+{% block style %}{% static "pojistenci/generate_donut.css" %}{% endblock style %}
+
+{% block content %}
+
+<h1 class="donut-title">Generování Donut grafu</h1>
+<p class="donut-subtitle">
+    Zde je možné zadat parametry grafu a aplikace vygeneruje obrázek.
+</p>
+
+{% if error_message %}
+    <p style="color:red; text-align:center; font-weight:bold;">
+        {{ error_message }}
+    </p>
+{% endif %}
+
+<form id="donut-form" method="post" class="donut-form">
+    {% csrf_token %}
+
+    <label for="donut_number">Počet položek grafu (1–10):</label>
+    <input type="number"
+           id="donut_number"
+           name="donut_number"
+           min="1"
+           max="10"
+           value="{{ prev_count|default:4 }}"
+           required>
+
+    <div id="values-container"></div>
+
+    <label class="custom-colors-toggle">
+        <input type="checkbox" id="use_custom_colors" name="use_custom_colors"> Použít vlastní barvy částí grafu</label>
+
+    <div id="colors-container" style="display:none;"></div>
+
+    <p class="warning-p">!Součet jednotlivých položek grafu musí samozřejmě být 100!</p>
+
+    <input type="submit" value="Generovat graf" class="donut-submit">
+</form>
+
+{% if donut_image_url %}
+    <div id="donut-result" class="donut-output">
+        <h2>Vygenerovaný graf:</h2>
+        <img id="donut-image" src="{{ donut_image_url }}" alt="donut graf">
+    </div>
+{% endif %}
+
+<script>
+// ===== DYNAMICKÉ GENEROVÁNÍ INPUTŮ =====
+document.addEventListener("DOMContentLoaded", function () {
+    const container = document.getElementById("values-container");
+    const inputCount = document.getElementById("donut_number");
+
+    // hodnoty vložené z Django šablony
+    const prevValues = {{ prev_values|default:"[]"|safe }};
+
+    function rebuildInputs() {
+        const count = parseInt(inputCount.value);
+        container.innerHTML = "";
+
+        for (let i = 0; i < count; i++) {
+            const label = document.createElement("label");
+            label.textContent = `Hodnota položky ${i+1} (0–100):`;
+
+            const input = document.createElement("input");
+            input.type = "number";
+            input.name = "chart_values";
+            input.min = 0;
+            input.max = 100;
+            input.required = true;
+            input.value = prevValues[i] !== undefined ? prevValues[i] : 25;
+
+            container.appendChild(label);
+            container.appendChild(input);
+        }
+    }
+
+    inputCount.addEventListener("input", rebuildInputs);
+
+    // první vykreslení
+    rebuildInputs();
+});
+
+// ===== DYNAMICKÉ GENEROVÁNÍ COLOR PICKERŮ =====
+document.addEventListener("DOMContentLoaded", function () {
+
+    const valuesContainer = document.getElementById("values-container");
+    const colorsContainer = document.getElementById("colors-container");
+    const inputCount = document.getElementById("donut_number");
+    const useCustomColors = document.getElementById("use_custom_colors");
+
+    // Data ze serveru
+    const prevValues = {{ prev_values|default:"[]"|safe }};
+    const prevColors = {{ prev_colors|default:"[]"|safe }};
+    const prevUseCustom = {{ prev_use_custom|yesno:"true,false"|safe }};
+
+    // Výchozí barvy – ty samé jako ve views
+    const DEFAULT_COLORS = [
+        "#004289", "#5C9EAE", "#8F2D56", "#E9BA6A", "#E4E5C3",
+        "#3F7CAC", "#D9BF77", "#6B4226", "#A1C181", "#F2E394"
+    ];
+
+    // ===== GENEROVÁNÍ INPUTŮ PRO HODNOTY =====
+    function rebuildValueInputs() {
+        const count = parseInt(inputCount.value);
+        valuesContainer.innerHTML = "";
+
+        for (let i = 0; i < count; i++) {
+            const lbl = document.createElement("label");
+            lbl.textContent = `Hodnota položky ${i+1} (0–100):`;
+
+            const inp = document.createElement("input");
+            inp.type = "number";
+            inp.name = "chart_values";
+            inp.min = 0;
+            inp.max = 100;
+            inp.required = true;
+            inp.value = prevValues[i] !== undefined ? prevValues[i] : 25;
+
+            valuesContainer.appendChild(lbl);
+            valuesContainer.appendChild(inp);
+        }
+    }
+
+    // ===== GENEROVÁNÍ COLOR PICKERŮ =====
+    function rebuildColorInputs() {
+        const count = parseInt(inputCount.value);
+
+        // pokud checkbox není zaškrtnutý → schovat a hotovo
+        if (!useCustomColors.checked) {
+            colorsContainer.style.display = "none";
+            colorsContainer.innerHTML = "";
+            return;
+        }
+
+        colorsContainer.style.display = "block";
+        colorsContainer.innerHTML = "";
+
+        for (let i = 0; i < count; i++) {
+            const lbl = document.createElement("label");
+            lbl.textContent = `Barva ${i+1}:`;
+
+            const inp = document.createElement("input");
+            inp.type = "color";
+            inp.name = "chart_colors";
+
+            // 1) přednost má hodnota z POST
+            // 2) nebo defaultní barva
+            // 3) nebo fallback
+            inp.value =
+                prevColors[i] ||
+                DEFAULT_COLORS[i] ||
+                "#cccccc";
+
+            colorsContainer.appendChild(lbl);
+            colorsContainer.appendChild(inp);
+        }
+    }
+
+    // Eventy
+    inputCount.addEventListener("input", function () {
+        rebuildValueInputs();
+        rebuildColorInputs();
+    });
+
+    useCustomColors.addEventListener("change", rebuildColorInputs);
+
+    // === PRVNÍ vykreslení po načtení ===
+    rebuildValueInputs();
+
+    if (prevUseCustom) {
+        useCustomColors.checked = true;
+    }
+
+    rebuildColorInputs();
+});
+
+
+// VLASTNÍ SMOOTH SCROLL S PLYNULÝM "EASE-IN-OUT"
+function smoothScrollTo(endY, duration = 1400) {
+    const startY = window.scrollY;
+    const distance = endY - startY;
+    let startTime = null;
+
+    // Krásná, plynulá ease-in-out funkce
+    function easeInOut(t) {
+        return t < 0.5 
+            ? 4 * t * t * t                    // pomalý rozjezd
+            : 1 - Math.pow(-2 * t + 2, 3) / 2; // zpomalující dojezd
+    }
+
+    function step(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const progress = timestamp - startTime;
+        const percent = Math.min(progress / duration, 1);
+
+        const eased = easeInOut(percent);
+
+        window.scrollTo(0, startY + distance * eased);
+
+        if (percent < 1) {
+            requestAnimationFrame(step);
+        }
+    }
+
+    requestAnimationFrame(step);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("donut-form");
+
+    // 1) Při odeslání nastavíme flag
+    if (form) {
+        form.addEventListener("submit", function () {
+            sessionStorage.setItem("donut_scroll_after_submit", "1");
+        });
+    }
+
+    // 2) Po reloadu zkontrolujeme flag
+    if (sessionStorage.getItem("donut_scroll_after_submit") === "1") {
+
+        sessionStorage.removeItem("donut_scroll_after_submit");
+
+        // počkáme 1 sekundu
+        setTimeout(() => {
+            const end = document.documentElement.scrollHeight;
+            smoothScrollTo(end, 1400); // 1.4s animace
+        }, 800);
+    }
+});
+</script>
+
+{% endblock content %}

@@ -7,14 +7,21 @@
 
 {% block content %}
 <h1 class="nadpis">Různé užitečné vychytávky v Pythonu</h1>
-<p>Tady bych si jenom chtěl zkoušet různé užitečné programy v Pythonu</p>
+<p>Tady bych si jenom chtěl zkoušet různé užitečné mini-programy v Pythonu. Zatím mám jenom generování QR kódu, brzy přidám generování Donut grafu</p>
 
-    <div class="tile-container">
-        <a href="{% url 'generate-qr' %}" class="tile">
-            <img src="{% static 'pojistenci/img/qr_icon.png' %}" alt="QR ikona">
-            <span>Generování QR kódu</span>
-        </a>
-    </div>
+<div class="tiles-wrapper">
+
+    <a href="{% url 'generate-qr' %}" class="tile">
+        <img src="{% static 'pojistenci/img/qr_icon.png' %}">
+        <span>Generování QR kódu</span>
+    </a>
+
+    <a href="{% url 'generate-chart' %}" class="tile">
+        <img src="{% static 'pojistenci/img/donut_chart_icon.png' %}">
+        <span>Donut graf</span>
+    </a>
+
+</div>
 
 
 {% endblock content %}

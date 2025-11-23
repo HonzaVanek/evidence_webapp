@@ -27,4 +27,5 @@ urlpatterns = [
     path('pojistenci/o_aplikaci', views.o_aplikaci, name='o-aplikaci'),
     path('pojistenci/vychytavky', views.vychytavky, name='vychytavky'),
     path('pojistenci/vychytavky/qr', views.generate_qr, name='generate-qr'),
+    path('pojistenci/vychytavky/chart', views.generate_chart, name='generate-chart'),
 ]
