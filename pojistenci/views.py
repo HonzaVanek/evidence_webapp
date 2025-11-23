@@ -342,6 +342,7 @@ def generate_qr(request):
         data = request.POST.get('qr_text')
         qr_size = int(request.POST.get('qr_size'))
         qr_border = int(request.POST.get('qr_border'))
+        
         qr = qrcode.QRCode(version=1, box_size=qr_size, border=qr_border)
         qr.add_data(data)
         qr.make(fit=True)
@@ -356,6 +357,15 @@ def generate_qr(request):
         image.save(full_path)
 
         qr_image_url = f"{settings.MEDIA_URL}qr_codes/{filename}"
+
+        # Smazání starších QR kódů:
+        try:
+            files = sorted([os.path.join(save_dir, f) for f in os.listdir(save_dir)], key=os.path.getmtime)
+            if len(files) > 10:  # ponechat posledních 10
+                for old_file in files[:-10]:
+                    os.remove(old_file)
+        except Exception:
+            pass  # pokud se něco pokazí, prostě to přeskočíme
 
         return render(request, 'pojistenci/generate_qr.html', {'qr_image_url': qr_image_url, 'data': data})
     
