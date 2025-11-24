@@ -432,3 +432,65 @@ def generate_chart(request):
         return render(request, 'pojistenci/generate_donut_chart.html', {'donut_image_url': donut_image_url, 'prev_count': count, "prev_values": values, "prev_colors": colors, "prev_use_custom": use_custom})
     
     return render(request, 'pojistenci/generate_donut_chart.html', {"prev_count": 4, "prev_values": [25, 25, 25, 25], "prev_colors": DEFAULT_COLORS[:4], "prev_use_custom": False})
+
+
+@login_required
+def remove_background(request):
+    if request.method == "POST":
+        image_file = request.FILES.get("image_file")
+        if not image_file:
+            return render(request, "pojistenci/remove_background.html", {
+                "error_message": "Prosím nahraj fotografii."
+            })
+
+        api_key = os.getenv("REMOVE_BG_API_KEY")
+        if not api_key:
+            return render(request, "pojistenci/remove_background.html", {
+                "error_message": "Chybí API klíč k remove.bg. Zkontroluj .env."
+            })
+
+        # ==== CALL REMOVE.BG API ====
+        files = {"image_file": image_file}
+        data = {"size": "auto"}   # může být "auto", "medium", "full"
+
+        response = requests.post(
+            "https://api.remove.bg/v1.0/removebg",
+            data=data,
+            files=files,
+            headers={"X-Api-Key": api_key},
+        )
+
+        if response.status_code != 200:
+            return render(request, "pojistenci/remove_background.html", {
+                "error_message": f"Remove.bg API error: {response.text}"
+            })
+
+        # ==== SAVE RESULT ====
+        output_dir = os.path.join(settings.MEDIA_ROOT, "removed_backgrounds")
+        os.makedirs(output_dir, exist_ok=True)
+
+        filename = f"no_bg_{timezone.now().strftime('%Y%m%d%H%M%S')}.png"
+        full_path = os.path.join(output_dir, filename)
+
+        with open(full_path, "wb") as f:
+            f.write(response.content)
+
+        # === zde přidáme rotaci starších obrázků ===
+        try:
+            files = sorted(
+                [os.path.join(output_dir, f) for f in os.listdir(output_dir)],
+                key=os.path.getmtime
+            )
+            if len(files) > 5:
+                for old_file in files[:-5]:
+                    os.remove(old_file)
+        except Exception:
+            pass  # pokud se něco pokazí, prostě to přeskočíme
+
+        output_url = f"{settings.MEDIA_URL}removed_backgrounds/{filename}"
+
+        return render(request, "pojistenci/remove_background.html", {
+            "output_image_url": output_url
+        })
+
+    return render(request, "pojistenci/remove_background.html")

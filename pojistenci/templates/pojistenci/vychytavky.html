@@ -7,7 +7,7 @@
 
 {% block content %}
 <h1 class="nadpis">Různé užitečné vychytávky v Pythonu</h1>
-<p>Tady bych si jenom chtěl zkoušet různé užitečné mini-programy v Pythonu. Zatím mám generování QR kódu a Donut grafu.</p>
+<p>Tady bych si jenom chtěl zkoušet různé užitečné mini-programy v Pythonu. Zatím mám generování QR kódu a Donut grafu + Odstranění pozadí na fotce (tam je omezení na 50 fotek za měsíc)</p>
 
 <div class="tiles-wrapper">
 
@@ -19,6 +19,11 @@
     <a href="{% url 'generate-chart' %}" class="tile">
         <img src="{% static 'pojistenci/img/donut_chart_icon.png' %}">
         <span>Donut graf</span>
+    </a>
+
+    <a href="{% url 'remove-background' %}" class="tile">
+        <img src="{% static 'pojistenci/img/remove_background.png' %}">
+        <span>Odstranění pozadí</span>
     </a>
 
 </div>

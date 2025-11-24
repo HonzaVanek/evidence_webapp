@@ -28,4 +28,5 @@ urlpatterns = [
     path('pojistenci/vychytavky', views.vychytavky, name='vychytavky'),
     path('pojistenci/vychytavky/qr', views.generate_qr, name='generate-qr'),
     path('pojistenci/vychytavky/chart', views.generate_chart, name='generate-chart'),
+    path('pojistenci/vychytavky/background', views.remove_background, name='remove-background'),
 ]

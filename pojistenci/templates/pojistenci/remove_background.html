@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Odstranění pozadí{% endblock title %}
+
+{% block style %}{% static "pojistenci/remove_background.css" %}{% endblock style %}
+
+{% block content %}
+
+<h1 class="remove-background-title">Odstranění pozadí obrázku</h1>
+<p class="remove-background-subtitle">
+    Zde je možné nahrát obrázek a aplikace odstraní jeho pozadí. Protože nemám dost místa na diskum tak je to přes API klíč, tudíž tam je omezení 50 fotek měsíčně :)
+</p>
+
+<form id="remove-background-form" method="post" class="remove-background-form" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="photo-upload-wrapper">
+        <label for="photo-input" class="custom-photo-upload">
+            Nahrát obrázek
+        </label>
+        
+        <input type="file" id="photo-input" name="image_file" accept="image/*" style="display: none;"        >
+
+        <span id="file-name">Žádný soubor nevybrán</span>
+        
+        <div id="preview-wrapper" style="margin-top: 15px;">
+            <img id="preview" src="#" alt="Náhled fotografie" style="display: none; max-width: 200px; height: auto; border-radius: 8px;">
+        </div>
+    </div>
+
+    <input type="submit" value="Odstranit pozadí" class="background-submit">
+</form>
+
+{% if output_image_url %}
+
+    <div id="background-remove-result" class="background-remove-output">
+        <h2>Fotka v png bez pozadí</h2>
+        <img id="output-image" src="{{ output_image_url }}" alt="Fotografie s odstraněným pozadím">
+    </div>
+
+{% endif %}
+
+<script>
+document.getElementById("photo-input").addEventListener("change", function(e){
+    const file = e.target.files[0];
+    if (!file) return;
+
+    document.getElementById("file-name").textContent = file.name;
+
+    const preview = document.getElementById("preview");
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = "block";
+});
+</script>
+{% endblock content %}

@@ -1,0 +1,129 @@
+/* ===============================
+   Nadpisy
+   =============================== */
+.remove-background-title {
+    text-align: center;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 2rem;
+}
+
+.remove-background-subtitle {
+    width: 90%;
+    max-width: 600px;
+    margin: 0 auto 30px;
+    padding: 12px 16px;
+    background-color: #eaf4ff;
+    border-left: 4px solid #1976d2;
+    border-radius: 4px;
+    font-style: italic;
+    color: #555;
+    line-height: 1.4;
+    text-align: center;
+}
+
+/* ===============================
+   Formulář – card styl
+   =============================== */
+.remove-background-form {
+    width: 90%;
+    max-width: 500px;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 20px 25px;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+/* ===============================
+   Upload fotky
+   =============================== */
+.photo-upload-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+/* Skryj skutečný input file */
+.photo-upload-wrapper input[type="file"] {
+    display: none;
+}
+
+/* Hezké tlačítko */
+.custom-photo-upload {
+    background-color: #1976d2;
+    color: white;
+    padding: 10px 16px;
+    margin-top: 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.25s, transform 0.1s;
+    display: inline-block;
+}
+
+.custom-photo-upload:hover {
+    background-color: #145bb0;
+    transform: translateY(-2px);
+}
+
+/* Název souboru */
+#file-name {
+    margin-top: 10px;
+    font-size: 0.95rem;
+    color: #555;
+}
+
+/* Náhledová fotka */
+#preview {
+    margin-top: 15px;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+    max-width: 230px;
+    height: auto;
+}
+
+/* ===============================
+   Tlačítko Odeslat
+   =============================== */
+.background-submit {
+    width: 100%;
+    margin-top: 25px;
+    padding: 12px;
+    background-color: #1976d2;
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.25s, transform 0.1s;
+}
+
+.background-submit:hover {
+    background-color: #145bb0;
+    transform: translateY(-2px);
+}
+
+/* ===============================
+   Výsledný obrázek
+   =============================== */
+.background-remove-output {
+    width: 90%;
+    max-width: 500px;
+    margin: 40px auto;
+    text-align: center;
+}
+
+.background-remove-output h2 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+#output-image {
+    width: 100%;
+    max-width: 350px;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
