@@ -105,26 +105,44 @@ document.addEventListener("DOMContentLoaded", function () {
     ];
 
     // ===== GENEROVÁNÍ INPUTŮ PRO HODNOTY =====
-    function rebuildValueInputs() {
-        const count = parseInt(inputCount.value);
-        valuesContainer.innerHTML = "";
+function rebuildValueInputs() {
+    const count = parseInt(inputCount.value);
+    valuesContainer.innerHTML = "";
 
-        for (let i = 0; i < count; i++) {
-            const lbl = document.createElement("label");
-            lbl.textContent = `Hodnota položky ${i+1} (0–100):`;
+    // --- pokud user mění počet položek, přepočítáme nové DEFAULT hodnoty ---
+    // pokud prevValues má jinou délku než aktuální count → přepočítáme
+    let newValues = [];
 
-            const inp = document.createElement("input");
-            inp.type = "number";
-            inp.name = "chart_values";
-            inp.min = 0;
-            inp.max = 100;
-            inp.required = true;
-            inp.value = prevValues[i] !== undefined ? prevValues[i] : 25;
+    if (prevValues.length !== count) {
+        // rovnoměrné rozdělení 100
+        const base = Math.floor(100 / count);
+        let sum = base * (count - 1);
+        const last = 100 - sum;
 
-            valuesContainer.appendChild(lbl);
-            valuesContainer.appendChild(inp);
-        }
+        for (let i = 0; i < count - 1; i++) newValues.push(base);
+        newValues.push(last);
+    } else {
+        // jinak použijeme stávající uložené hodnoty
+        newValues = [...prevValues];
     }
+
+    // vytvoření inputů
+    for (let i = 0; i < count; i++) {
+        const lbl = document.createElement("label");
+        lbl.textContent = `Hodnota položky ${i+1} (0–100):`;
+
+        const inp = document.createElement("input");
+        inp.type = "number";
+        inp.name = "chart_values";
+        inp.min = 0;
+        inp.max = 100;
+        inp.required = true;
+        inp.value = newValues[i];
+
+        valuesContainer.appendChild(lbl);
+        valuesContainer.appendChild(inp);
+    }
+}
 
     // ===== GENEROVÁNÍ COLOR PICKERŮ =====
     function rebuildColorInputs() {
