@@ -30,3 +30,5 @@ staticfiles/
 # ---- OS / addons ----
 .DS_Store
 Thumbs.db
+
+evidence/settings.env
