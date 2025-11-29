@@ -376,7 +376,7 @@ def generate_qr(request):
 
 @login_required
 def generate_chart(request):
-    DEFAULT_COLORS = ["#004289", "#5C9EAE", "#8F2D56", "#E9BA6A", "#E4E5C3","#3F7CAC", "#D9BF77", "#6B4226", "#A1C181", "#F2E394"    ]
+    DEFAULT_COLORS = ["#004289", "#5C9EAE", "#8F2D56", "#E9BA6A", "#E4E5C3","#3F7CAC", "#D9BF77", "#6B4226", "#A1C181", "#F2E394"]
     if request.method == "POST":
         count = int(request.POST.get("donut_number"))
         values = list(map(int, request.POST.getlist("chart_values")))
@@ -494,3 +494,58 @@ def remove_background(request):
         })
 
     return render(request, "pojistenci/remove_background.html")
+
+
+def generate_pie_chart(request):
+    DEFAULT_COLORS = ["#004289", "#5C9EAE", "#8F2D56", "#E9BA6A", "#E4E5C3","#3F7CAC", "#D9BF77", "#6B4226", "#A1C181", "#F2E394"    ]
+    if request.method == "POST":
+        count = int(request.POST.get("pie-chart-number"))
+        values = list(map(int, request.POST.getlist("chart_values")))
+        
+        if sum(values) != 100:
+            return render(request,'pojistenci/generate_pie_chart.html',
+                {
+                    "error_message": f"Součet všech hodnot jednotlivých položek musí být 100. Aktuálně je to {sum(values)}.",
+                    "prev_count": count,
+                    "prev_values": values,
+                    "prev_use_custom": request.POST.get("use_custom_colors") == "on",
+                    "prev_colors": request.POST.getlist("chart_colors") or DEFAULT_COLORS[:count]
+                }
+            )
+
+        use_custom = request.POST.get("use_custom_colors") == "on"
+        prev_colors = request.POST.getlist("chart_colors")
+        if use_custom:
+            if not prev_colors or len(prev_colors) < count:
+                prev_colors = DEFAULT_COLORS[:count]
+            colors = prev_colors[:count]
+        else:
+            colors = DEFAULT_COLORS[:count]
+        
+        fig, ax = plt.subplots()
+        ax.pie(values, colors=colors[:len(values)], startangle=-40)
+        ax.axis('equal')  
+        fig.patch.set_alpha(0)  # transparentní pozadí
+        ax.patch.set_alpha(0)
+
+        filename = f"pie_chart_{timezone.now().strftime('%Y%m%d%H%M%S')}.png"
+        save_dir = os.path.join(settings.MEDIA_ROOT, "pie_charts")
+        os.makedirs(save_dir, exist_ok=True)
+        full_path = os.path.join(save_dir, filename)
+        
+        plt.savefig(full_path, transparent=True)
+        plt.close()
+
+        pie_chart_image_url = f"{settings.MEDIA_URL}pie_charts/{filename}"
+
+        # Smazání starších grafů:
+        try:
+            files = sorted([os.path.join(save_dir, f) for f in os.listdir(save_dir)], key=os.path.getmtime)
+            if len(files) > 10:  # ponechat posledních 10
+                for old_file in files[:-10]:
+                    os.remove(old_file)
+        except Exception:
+            pass  # pokud se něco pokazí, prostě to přeskočíme
+
+        return render(request, 'pojistenci/generate_pie_chart.html', {'pie_chart_image_url': pie_chart_image_url, 'prev_count': count, "prev_values": values, "prev_colors": colors, "prev_use_custom": use_custom})
+    return render(request, 'pojistenci/generate_pie_chart.html')

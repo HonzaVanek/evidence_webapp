@@ -1,0 +1,226 @@
+/* ===============================
+   Nadpisy a popis
+   =============================== */
+.pie-chart-title {
+    text-align: center;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 2rem;
+}
+
+.pie-chart-subtitle {
+    width: 90%;
+    max-width: 600px;
+    margin: 0 auto 30px;
+    padding: 12px 16px;
+    background-color: #eaf4ff;
+    border-left: 4px solid #1976d2;
+    border-radius: 4px;
+    font-style: italic;
+    color: #555;
+    line-height: 1.4;
+    text-align: center;
+}
+
+/* ===============================
+   Formulář
+   =============================== */
+.pie-chart-form {
+    width: 90%;
+    max-width: 480px;
+    margin: 0 auto;
+    margin-bottom: 20px;
+    background: #ffffff;
+    padding: 15px 25px;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+/* Popisky */
+.pie-chart-form label {
+    display: block;
+    font-weight: 600;
+    margin-top: 8px;
+    margin-bottom: 3px;
+    color: #1a1a1a;
+}
+
+/* Inputy  */
+.pie-chart-form input[type="number"] {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 1rem;
+    border: 1px solid #c7d5e0;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    transition: border-color 0.2s;
+}
+
+.pie-chart-form input[type="number"]:focus {
+    border-color: #1976d2;
+    outline: none;
+}
+
+/* Tlačítko */
+.pie-chart-submit {
+    width: 100%;
+    margin-top: 22px;
+    padding: 12px;
+    background-color: #1976d2;
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.25s, transform 0.1s;
+}
+
+.pie-chart-submit:hover {
+    background-color: #145bb0;
+    transform: translateY(-2px);
+}
+
+/* ===============================
+   Chyby
+   =============================== */
+.error-box {
+    width: 90%;
+    max-width: 480px;
+    margin: 15px auto;
+    padding: 14px 18px;
+    background-color: #ffe6e6;
+    border-left: 4px solid #d9534f;
+    border-radius: 6px;
+    font-weight: 600;
+    color: #b21f2d;
+}
+
+.pie-chart-error {
+    background: #ffeaea;
+    border: 1px solid #ff6b6b;
+    color: #b30000;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* ===============================
+   Výsledný graf
+   =============================== */
+.pie-chart-output {
+    width: 90%;
+    max-width: 500px;
+    margin: 40px auto;
+    text-align: center;
+}
+
+.pie-chart-output h2 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+#pie-chart-image {
+    width: 100%;
+    max-width: 350px;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+
+
+
+
+
+
+
+/* ===============================
+   Checkbox "Použít vlastní barvy"
+   =============================== */
+.custom-colors-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 15px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #1a1a1a;
+    user-select: none;
+}
+
+.custom-colors-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* ===============================
+   Kontejner s color pickery
+   =============================== */
+#colors-container {
+    margin-top: 15px;
+    padding: 12px 15px;
+    background: #f8fbff;
+    border: 1px solid #d3e2f2;
+    border-radius: 8px;
+}
+
+/* Popisky k pickerům */
+#colors-container label {
+    display: block;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Color pickery */
+#colors-container input[type="color"] {
+    width: 48px;
+    height: 32px;
+    padding: 0;
+    border-radius: 6px;
+    border: 1px solid #b5c9dd;
+    cursor: pointer;
+    background: white;
+    transition: box-shadow 0.25s, transform 0.1s;
+}
+
+#colors-container input[type="color"]:hover {
+    box-shadow: 0 0 6px rgba(25, 118, 210, 0.45);
+}
+
+#colors-container input[type="color"]:active {
+    transform: scale(0.96);
+}
+
+/* === Checkbox + text === */
+.custom-colors-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;        /* hezčí mezera */
+    margin-top: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.custom-colors-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    flex-shrink: 0;   /* ať se nesmršťuje */
+}
+
+/* === Jemné upozornění === */
+.warning-p {
+    margin-top: 8px;
+    padding: 10px 14px;
+    background: #fff8e6;          /* jemná žlutá */
+    border-left: 4px solid #e6b800;
+    border-radius: 6px;
+    color: #8a6d00;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
