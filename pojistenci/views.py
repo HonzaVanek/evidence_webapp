@@ -521,10 +521,31 @@ def generate_pie_chart(request):
             colors = prev_colors[:count]
         else:
             colors = DEFAULT_COLORS[:count]
+
+        labels = request.POST.getlist("chart_labels")
+        use_labels = request.POST.get("use_labels") == "on"
+        if use_labels:
+            if len(labels) < count:
+                labels = labels + [""] * (count - len(labels))
+        else:
+            labels = [""] * count
         
-        fig, ax = plt.subplots()
-        ax.pie(values, colors=colors[:len(values)], startangle=-40)
-        ax.axis('equal')  
+        fig, ax = plt.subplots(figsize=(7,7))
+        wedges, texts = ax.pie(
+            values,
+            colors=colors[:len(values)],
+            labels=labels,
+            startangle=-40,
+            textprops={'fontsize': 14, 'color': '#000'}
+        )
+
+        # Posunout popisky dál od středu, aby nebyly uříznuté
+        for t in texts:
+            x, y = t.get_position()
+            t.set_position((x * 1.15, y * 1.15))
+
+        ax.axis('equal') 
+        plt.subplots_adjust(left=0.15, right=0.85, top=0.85, bottom=0.15)
         fig.patch.set_alpha(0)  # transparentní pozadí
         ax.patch.set_alpha(0)
 
@@ -533,7 +554,7 @@ def generate_pie_chart(request):
         os.makedirs(save_dir, exist_ok=True)
         full_path = os.path.join(save_dir, filename)
         
-        plt.savefig(full_path, transparent=True)
+        plt.savefig(full_path, transparent=True, bbox_inches='tight', dpi=150)
         plt.close()
 
         pie_chart_image_url = f"{settings.MEDIA_URL}pie_charts/{filename}"
@@ -547,5 +568,5 @@ def generate_pie_chart(request):
         except Exception:
             pass  # pokud se něco pokazí, prostě to přeskočíme
 
-        return render(request, 'pojistenci/generate_pie_chart.html', {'pie_chart_image_url': pie_chart_image_url, 'prev_count': count, "prev_values": values, "prev_colors": colors, "prev_use_custom": use_custom})
+        return render(request, 'pojistenci/generate_pie_chart.html', {'pie_chart_image_url': pie_chart_image_url, 'prev_count': count, "prev_values": values, "prev_colors": colors, "prev_use_custom": use_custom, "prev_labels": labels, "prev_use_labels": use_labels})
     return render(request, 'pojistenci/generate_pie_chart.html')

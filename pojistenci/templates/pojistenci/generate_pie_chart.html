@@ -30,11 +30,21 @@
            value="{{ prev_count|default:3 }}"
            required>
 
+    <!-- POPISKY -->
+    <label class="custom-labels-toggle">
+        <input type="checkbox" id="use_labels" name="use_labels">
+        Chci zadat popisky jednotlivých položek grafu
+    </label>
+    <div id="labels-container" style="display:none;"></div>
+
+    <!-- HODNOTY -->
     <div id="values-container"></div>
 
+    <!-- BARVY -->
     <label class="custom-colors-toggle">
-        <input type="checkbox" id="use_custom_colors" name="use_custom_colors"> Použít vlastní barvy částí grafu</label>
-
+        <input type="checkbox" id="use_custom_colors" name="use_custom_colors">
+        Použít vlastní barvy částí grafu
+    </label>
     <div id="colors-container" style="display:none;"></div>
 
     <p class="warning-p">!Součet jednotlivých položek grafu musí samozřejmě být 100!</p>
@@ -50,105 +60,158 @@
 {% endif %}
 
 <script>
-// ===== DYNAMICKÉ GENEROVÁNÍ INPUTŮ =====
-document.addEventListener("DOMContentLoaded", function () {
-    const container = document.getElementById("values-container");
-    const inputCount = document.getElementById("pie-chart-number");
+function smoothScrollTo(endY, duration = 1400) {
+    const startY = window.scrollY;
+    const distance = endY - startY;
+    let startTime = null;
 
-    // hodnoty vložené z Django šablony
-    const prevValues = {{ prev_values|default:"[]"|safe }};
+    function easeInOut(t) {
+        return t < 0.5 
+            ? 4 * t * t * t
+            : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
 
-    function rebuildInputs() {
-        const count = parseInt(inputCount.value);
-        container.innerHTML = "";
+    function step(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const progress = timestamp - startTime;
+        const percent = Math.min(progress / duration, 1);
+        const eased = easeInOut(percent);
 
-        for (let i = 0; i < count; i++) {
-            const label = document.createElement("label");
-            label.textContent = `Hodnota položky ${i+1} (0–100):`;
+        window.scrollTo(0, startY + distance * eased);
 
-            const input = document.createElement("input");
-            input.type = "number";
-            input.name = "chart_values";
-            input.min = 0;
-            input.max = 100;
-            input.required = true;
-            input.value = prevValues[i] !== undefined ? prevValues[i] : 25;
-
-            container.appendChild(label);
-            container.appendChild(input);
+        if (percent < 1) {
+            requestAnimationFrame(step);
         }
     }
 
-    inputCount.addEventListener("input", rebuildInputs);
+    requestAnimationFrame(step);
+}
 
-    // první vykreslení
-    rebuildInputs();
-});
-
-// ===== DYNAMICKÉ GENEROVÁNÍ COLOR PICKERŮ =====
 document.addEventListener("DOMContentLoaded", function () {
 
-    const valuesContainer = document.getElementById("values-container");
-    const colorsContainer = document.getElementById("colors-container");
     const inputCount = document.getElementById("pie-chart-number");
-    const useCustomColors = document.getElementById("use_custom_colors");
 
-    // Data ze serveru
+    // =========================
+    // ======  VALUES  =========
+    // =========================
+    const valuesContainer = document.getElementById("values-container");
     const prevValues = {{ prev_values|default:"[]"|safe }};
+    let currentLabels = {{ prev_labels|default:"[]"|safe }};
+
+    function rebuildValueInputs() {
+        const count = parseInt(inputCount.value);
+        valuesContainer.innerHTML = "";
+
+        let newValues = [];
+
+        if (prevValues.length !== count) {
+            const base = Math.floor(100 / count);
+            let sum = base * (count - 1);
+            const last = 100 - sum;
+            for (let i = 0; i < count - 1; i++) newValues.push(base);
+            newValues.push(last);
+        } else {
+            newValues = [...prevValues];
+        }
+
+        for (let i = 0; i < count; i++) {
+            const lbl = document.createElement("label");
+            lbl.classList.add("value-label");
+            lbl.setAttribute("data-index", i);
+
+            const labelName =
+                currentLabels[i] && currentLabels[i].trim() !== ""
+                    ? currentLabels[i]
+                    : `položky ${i + 1}`;
+
+            lbl.textContent = `Hodnota ${labelName} (0–100):`;
+
+            const inp = document.createElement("input");
+            inp.type = "number";
+            inp.name = "chart_values";
+            inp.min = 0;
+            inp.max = 100;
+            inp.required = true;
+            inp.value = newValues[i];
+
+            valuesContainer.appendChild(lbl);
+            valuesContainer.appendChild(inp);
+        }
+    }
+
+    // =========================
+    // ======  LABELS  =========
+    // =========================
+    const useLabels = document.getElementById("use_labels");
+    const labelsContainer = document.getElementById("labels-container");
+    const prevLabels = {{ prev_labels|default:"[]"|safe }};
+    const prevUseLabels = {{ prev_use_labels|yesno:"true,false"|safe }};
+
+    function rebuildLabelInputs() {
+        const count = parseInt(inputCount.value);
+
+        if (!useLabels.checked) {
+            labelsContainer.style.display = "none";
+            labelsContainer.innerHTML = "";
+            currentLabels = [];
+            rebuildValueInputs();
+            return;
+        }
+
+        labelsContainer.style.display = "block";
+        labelsContainer.innerHTML = "";
+
+        currentLabels = [...prevLabels];
+
+        for (let i = 0; i < count; i++) {
+            const lbl = document.createElement("label");
+            lbl.textContent = `Popisek položky ${i+1}:`;
+
+            const inp = document.createElement("input");
+            inp.type = "text";
+            inp.name = "chart_labels";
+            inp.value = prevLabels[i] || "";
+            inp.setAttribute("data-index", i);
+
+            // === LIVE UPDATE VALUE LABEL ===
+            inp.addEventListener("input", function () {
+                const idx = parseInt(this.getAttribute("data-index"));
+                currentLabels[idx] = this.value;
+
+                const valueLabel = valuesContainer.querySelector(
+                    `label.value-label[data-index="${idx}"]`
+                );
+
+                if (valueLabel) {
+                    const labelName =
+                        this.value.trim() !== ""
+                            ? this.value
+                            : `položky ${idx + 1}`;
+
+                    valueLabel.textContent = `Hodnota ${labelName} (0–100):`;
+                }
+            });
+
+            labelsContainer.appendChild(lbl);
+            labelsContainer.appendChild(inp);
+        }
+    }
+
+    // =========================
+    // ======  COLORS  =========
+    // =========================
+    const useCustomColors = document.getElementById("use_custom_colors");
+    const colorsContainer = document.getElementById("colors-container");
     const prevColors = {{ prev_colors|default:"[]"|safe }};
     const prevUseCustom = {{ prev_use_custom|yesno:"true,false"|safe }};
-
-    // Výchozí barvy – ty samé jako ve views
     const DEFAULT_COLORS = [
         "#004289", "#5C9EAE", "#8F2D56", "#E9BA6A", "#E4E5C3",
         "#3F7CAC", "#D9BF77", "#6B4226", "#A1C181", "#F2E394"
     ];
 
-    // ===== GENEROVÁNÍ INPUTŮ PRO HODNOTY =====
-function rebuildValueInputs() {
-    const count = parseInt(inputCount.value);
-    valuesContainer.innerHTML = "";
-
-    // --- pokud user mění počet položek, přepočítáme nové DEFAULT hodnoty ---
-    // pokud prevValues má jinou délku než aktuální count → přepočítáme
-    let newValues = [];
-
-    if (prevValues.length !== count) {
-        // rovnoměrné rozdělení 100
-        const base = Math.floor(100 / count);
-        let sum = base * (count - 1);
-        const last = 100 - sum;
-
-        for (let i = 0; i < count - 1; i++) newValues.push(base);
-        newValues.push(last);
-    } else {
-        // jinak použijeme stávající uložené hodnoty
-        newValues = [...prevValues];
-    }
-
-    // vytvoření inputů
-    for (let i = 0; i < count; i++) {
-        const lbl = document.createElement("label");
-        lbl.textContent = `Hodnota položky ${i+1} (0–100):`;
-
-        const inp = document.createElement("input");
-        inp.type = "number";
-        inp.name = "chart_values";
-        inp.min = 0;
-        inp.max = 100;
-        inp.required = true;
-        inp.value = newValues[i];
-
-        valuesContainer.appendChild(lbl);
-        valuesContainer.appendChild(inp);
-    }
-}
-
-    // ===== GENEROVÁNÍ COLOR PICKERŮ =====
     function rebuildColorInputs() {
         const count = parseInt(inputCount.value);
 
-        // pokud checkbox není zaškrtnutý → schovat a hotovo
         if (!useCustomColors.checked) {
             colorsContainer.style.display = "none";
             colorsContainer.innerHTML = "";
@@ -165,10 +228,6 @@ function rebuildValueInputs() {
             const inp = document.createElement("input");
             inp.type = "color";
             inp.name = "chart_colors";
-
-            // 1) přednost má hodnota z POST
-            // 2) nebo defaultní barva
-            // 3) nebo fallback
             inp.value =
                 prevColors[i] ||
                 DEFAULT_COLORS[i] ||
@@ -179,78 +238,57 @@ function rebuildValueInputs() {
         }
     }
 
-    // Eventy
+    // =========================
+    // ====== EVENTY ===========
+    // =========================
     inputCount.addEventListener("input", function () {
+        rebuildLabelInputs();
         rebuildValueInputs();
         rebuildColorInputs();
     });
 
+    useLabels.addEventListener("change", function () {
+        rebuildLabelInputs();
+        rebuildValueInputs();
+    });
+
     useCustomColors.addEventListener("change", rebuildColorInputs);
 
-    // === PRVNÍ vykreslení po načtení ===
+    // =========================
+    // ==== INITIAL RENDER =====
+    // =========================
+    if (prevUseLabels) useLabels.checked = true;
+    rebuildLabelInputs();
+
     rebuildValueInputs();
 
-    if (prevUseCustom) {
-        useCustomColors.checked = true;
-    }
-
+    if (prevUseCustom) useCustomColors.checked = true;
     rebuildColorInputs();
-});
 
-
-// VLASTNÍ SMOOTH SCROLL S PLYNULÝM "EASE-IN-OUT"
-function smoothScrollTo(endY, duration = 1400) {
-    const startY = window.scrollY;
-    const distance = endY - startY;
-    let startTime = null;
-
-    // Krásná, plynulá ease-in-out funkce
-    function easeInOut(t) {
-        return t < 0.5 
-            ? 4 * t * t * t                    // pomalý rozjezd
-            : 1 - Math.pow(-2 * t + 2, 3) / 2; // zpomalující dojezd
-    }
-
-    function step(timestamp) {
-        if (!startTime) startTime = timestamp;
-        const progress = timestamp - startTime;
-        const percent = Math.min(progress / duration, 1);
-
-        const eased = easeInOut(percent);
-
-        window.scrollTo(0, startY + distance * eased);
-
-        if (percent < 1) {
-            requestAnimationFrame(step);
-        }
-    }
-
-    requestAnimationFrame(step);
-}
-
-document.addEventListener("DOMContentLoaded", function () {
+    // =========================
+    // ==== SMOOTH SCROLL ======
+    // =========================
 
     const form = document.getElementById("pie-chart-form");
 
-    // 1) Při odeslání nastavíme flag
     if (form) {
         form.addEventListener("submit", function () {
             sessionStorage.setItem("pie_chart_scroll_after_submit", "1");
         });
     }
 
-    // 2) Po reloadu zkontrolujeme flag
     if (sessionStorage.getItem("pie_chart_scroll_after_submit") === "1") {
 
         sessionStorage.removeItem("pie_chart_scroll_after_submit");
 
-        // počkáme 1 sekundu
         setTimeout(() => {
             const end = document.documentElement.scrollHeight;
-            smoothScrollTo(end, 1400); // 1.4s animace
+            smoothScrollTo(end, 1400);
         }, 800);
     }
+
 });
 </script>
+
 
 {% endblock content %}
