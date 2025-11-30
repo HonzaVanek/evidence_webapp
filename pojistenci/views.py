@@ -345,11 +345,13 @@ def generate_qr(request):
         data = request.POST.get('qr_text')
         qr_size = int(request.POST.get('qr_size'))
         qr_border = int(request.POST.get('qr_border'))
+        qr_color = request.POST.get('qr_color')
+        qr_background_color = request.POST.get('qr_background_color')
         
-        qr = qrcode.QRCode(version=1, box_size=qr_size, border=qr_border)
+        qr = qrcode.QRCode(version=None, box_size=qr_size, border=qr_border)
         qr.add_data(data)
         qr.make(fit=True)
-        image = qr.make_image(fill="black", back_color = "white")
+        image = qr.make_image(fill_color=qr_color, back_color = qr_background_color)
 
         # Uložení QR kódu do mediální složky
         
