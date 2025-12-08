@@ -35,6 +35,9 @@ import os
 import matplotlib
 matplotlib.use("Agg") 
 import matplotlib.pyplot as plt
+from matplotlib.patches import PathPatch
+from matplotlib.patches import Wedge
+from matplotlib.path import Path
 
 # Create your views here.
 
@@ -527,6 +530,17 @@ def generate_pie_chart(request):
     if request.method == "POST":
         count = int(request.POST.get("pie-chart-number"))
         values = list(map(int, request.POST.getlist("chart_values")))
+        highlight_index = None
+        highlight_outline = False
+        full_outline = False
+
+        if request.user.is_staff:
+            # index vystouplé části, může být None
+            raw_index = request.POST.get("highlight_index")
+            if raw_index not in (None, "", "none"):
+                highlight_index = int(raw_index)
+
+        full_outline = request.POST.get("full_outline") == "on"
         
         if sum(values) != 100:
             return render(request,'pojistenci/generate_pie_chart.html',
@@ -555,15 +569,26 @@ def generate_pie_chart(request):
                 labels = labels + [""] * (count - len(labels))
         else:
             labels = [""] * count
+
+
+        explode = [0] * len(values)
+        if highlight_index is not None:
+            explode[highlight_index] = 0.12
         
         fig, ax = plt.subplots(figsize=(7,7))
         wedges, texts = ax.pie(
             values,
+            explode=explode,
             colors=colors[:len(values)],
             labels=labels,
             startangle=-40,
             textprops={'fontsize': 14, 'color': '#000'}
         )
+
+        if full_outline:
+            # Nakresli kruh mírně větší než pie graf
+            circ = plt.Circle((0, 0), radius=1.08, fill=False, linewidth=9, edgecolor="#55002e")
+            ax.add_patch(circ)
 
         # Posunout popisky dál od středu, aby nebyly uříznuté
         for t in texts:
@@ -571,7 +596,7 @@ def generate_pie_chart(request):
             t.set_position((x * 1.15, y * 1.15))
 
         ax.axis('equal') 
-        plt.subplots_adjust(left=0.15, right=0.85, top=0.85, bottom=0.15)
+        plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
         fig.patch.set_alpha(0)  # transparentní pozadí
         ax.patch.set_alpha(0)
 
@@ -580,7 +605,7 @@ def generate_pie_chart(request):
         os.makedirs(save_dir, exist_ok=True)
         full_path = os.path.join(save_dir, filename)
         
-        plt.savefig(full_path, transparent=True, bbox_inches='tight', dpi=150)
+        plt.savefig(full_path, transparent=True, dpi=150)
         plt.close()
 
         pie_chart_image_url = f"{settings.MEDIA_URL}pie_charts/{filename}"
@@ -594,5 +619,5 @@ def generate_pie_chart(request):
         except Exception:
             pass  # pokud se něco pokazí, prostě to přeskočíme
 
-        return render(request, 'pojistenci/generate_pie_chart.html', {'pie_chart_image_url': pie_chart_image_url, 'prev_count': count, "prev_values": values, "prev_colors": colors, "prev_use_custom": use_custom, "prev_labels": labels, "prev_use_labels": use_labels, "is_staff": request.user.is_staff})
-    return render(request, 'pojistenci/generate_pie_chart.html', {"is_staff": request.user.is_staff})
+        return render(request, 'pojistenci/generate_pie_chart.html', {'pie_chart_image_url': pie_chart_image_url, 'prev_count': count, "prev_values": values, "prev_colors": colors, "prev_use_custom": use_custom, "prev_labels": labels, "prev_use_labels": use_labels, "is_staff": request.user.is_staff, "count_range": range(count)})
+    return render(request, 'pojistenci/generate_pie_chart.html', {"is_staff": request.user.is_staff, "count_range": range(3), "prev_count" : 3})
