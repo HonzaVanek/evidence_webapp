@@ -347,14 +347,38 @@ def generate_qr(request):
         qr_border = int(request.POST.get('qr_border'))
         qr_color = request.POST.get('qr_color')
         qr_background_color = request.POST.get('qr_background_color')
+        use_custom_logo = request.POST.get("use_custom_logo") == "on"
+        custom_logo_file = request.FILES.get("custom_logo_file")
+
+        logo = None
+        if use_custom_logo and custom_logo_file:
+            try:
+                logo = Image.open(custom_logo_file).convert("RGBA")
+            except Exception as e:
+                print("LOGO ERROR:", e)
+                logo = None
         
-        qr = qrcode.QRCode(version=None, box_size=qr_size, border=qr_border)
+        qr = qrcode.QRCode(version=None, box_size=qr_size, border=qr_border, error_correction=qrcode.constants.ERROR_CORRECT_H)
         qr.add_data(data)
         qr.make(fit=True)
-        image = qr.make_image(fill_color=qr_color, back_color = qr_background_color)
+        image = qr.make_image(fill_color=qr_color, back_color = qr_background_color).convert('RGBA')
 
-        # Uložení QR kódu do mediální složky
+        if logo:
+            # spočítat cílovou velikost loga jako 20 % šířky QR
+            qr_w, qr_h = image.size
+            logo_target_width = int(qr_w * 0.20)
+
+            wpercent = logo_target_width / float(logo.size[0])
+            logo_target_height = int(float(logo.size[1]) * wpercent)
+
+            logo = logo.resize((logo_target_width, logo_target_height), Image.LANCZOS)
+
+            # pozice uprostřed
+            pos = ((qr_w - logo_target_width) // 2, (qr_h - logo_target_height) // 2)
+
+            image.alpha_composite(logo, dest=pos)
         
+        # Uložení QR kódu do mediální složky
         filename = f"qr_code_{timezone.now().strftime('%Y%m%d%H%M%S')}.png"
         save_dir = os.path.join(settings.MEDIA_ROOT, "qr_codes")
         os.makedirs(save_dir, exist_ok=True)             # vytvoří složku pokud neexistuje

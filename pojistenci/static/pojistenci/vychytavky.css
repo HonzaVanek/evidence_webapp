@@ -86,3 +86,22 @@ p {
     color: #0d5bb5;
 }
 
+
+
+.tile {
+    position: relative;
+    overflow: hidden; /* Glow musí být uvnitř */
+}
+
+.tile-glow {
+    position: absolute;
+    width: 130px;
+    height: 130px;
+    background: radial-gradient(circle, rgba(25,118,210,0.35), transparent 70%);
+    pointer-events: none; /* kurzor to neblokuje */
+    transform: translate(-50%, -50%);
+    top: 0;
+    left: 0;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}

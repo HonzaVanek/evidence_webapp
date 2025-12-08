@@ -12,26 +12,53 @@
 <div class="tiles-wrapper">
 
     <a href="{% url 'generate-qr' %}" class="tile">
+        <div class="tile-glow"></div>
         <img src="{% static 'pojistenci/img/qr_icon.png' %}">
         <span>Generování QR kódu</span>
     </a>
 
     <a href="{% url 'generate-chart' %}" class="tile">
+        <div class="tile-glow"></div>
         <img src="{% static 'pojistenci/img/donut_chart_icon.png' %}">
         <span>Donut graf</span>
     </a>
 
     <a href="{% url 'generate-pie-chart' %}" class="tile">
+        <div class="tile-glow"></div>
         <img src="{% static 'pojistenci/img/pie_chart_icon.png' %}">
         <span>Koláčový graf</span>
     </a>
 
     <a href="{% url 'remove-background' %}" class="tile">
+        <div class="tile-glow"></div>
         <img src="{% static 'pojistenci/img/remove_background.png' %}">
         <span>Odstranění pozadí</span>
     </a>
 
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".tile").forEach(tile => {
+        
+        const glow = tile.querySelector(".tile-glow");
+        
+        tile.addEventListener("mousemove", e => {
+            const rect = tile.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            glow.style.left = x + "px";
+            glow.style.top = y + "px";
+            glow.style.opacity = "1";
+        });
+
+        tile.addEventListener("mouseleave", () => {
+            glow.style.opacity = "0";
+        });
+    });
+});
+</script>
 
 
 {% endblock content %}

@@ -12,7 +12,7 @@
     Zde je možné zadat jakýkoli text / link apod. a aplikace vygeneruje příslušný QR kód
 </p>
 
-<form id="qr-form" method="post" class="qr-form">
+<form id="qr-form" method="post" class="qr-form" enctype="multipart/form-data">
     {% csrf_token %}
 
     <label for="qr_text">Text nebo URL pro QR kód:</label>
@@ -29,6 +29,16 @@
 
     <label for="qr_background_color">Barva pozadí QR Kódu</label>
     <input type ="color" id="qr_background_color" name="qr_background_color" value="#ffffff" required>
+
+    <label class="custom-logo">
+        <input type="checkbox" id="use_custom_logo" name="use_custom_logo">
+        Chci doprostřed QR kódu umístit obrázek (např. svoje logo)
+    </label>
+
+    <label id="logo-upload-wrapper" style="display:none;">
+        Nahraj své logo:
+        <input type="file" id="custom_logo_file" name="custom_logo_file" accept="image/*">
+    </label>
 
     <input type="submit" value="Generovat QR kód" class="qr-submit">
 </form>
@@ -79,6 +89,8 @@ function smoothScrollTo(endY, duration = 1400) {
 document.addEventListener("DOMContentLoaded", function () {
 
     const form = document.getElementById("qr-form");
+    const checkbox = document.getElementById("use_custom_logo");
+    const uploadWrapper = document.getElementById("logo-upload-wrapper");
 
     // 1) Při odeslání nastavíme flag
     if (form) {
@@ -98,6 +110,16 @@ document.addEventListener("DOMContentLoaded", function () {
             smoothScrollTo(end, 1400); // 1.4s animace
         }, 800);
     }
+
+    function toggleUpload() {
+        uploadWrapper.style.display = checkbox.checked ? "block" : "none";
+    }
+
+    // inicializace při načtení stránky
+    toggleUpload();
+
+    // přepínání při kliknutí
+    checkbox.addEventListener("change", toggleUpload);
 });
 </script>
 
