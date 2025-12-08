@@ -49,6 +49,27 @@
 
     <p class="warning-p">!Součet jednotlivých položek grafu musí samozřejmě být 100!</p>
 
+    {% if is_staff %}
+        <div class="admin-controls">
+
+            <h3>Admin funkce:</h3>
+
+            <label>Vystouplá položka:</label>
+                <select name="highlight_index">
+                    <option value="">— žádná —</option>
+                    {% for i in count_range %}
+                        <option value="{{ i }}">{{ i|add:1 }}. položka</option>
+                    {% endfor %}
+                </select>
+
+            <label>
+                <input type="checkbox" name="full_outline">
+                Obrys celého grafu
+            </label>
+
+        </div>
+    {% endif %}
+
     <input type="submit" value="Generovat graf" class="pie-chart-submit">
 </form>
 
