@@ -621,3 +621,52 @@ def generate_pie_chart(request):
 
         return render(request, 'pojistenci/generate_pie_chart.html', {'pie_chart_image_url': pie_chart_image_url, 'prev_count': count, "prev_values": values, "prev_colors": colors, "prev_use_custom": use_custom, "prev_labels": labels, "prev_use_labels": use_labels, "is_staff": request.user.is_staff, "count_range": range(count)})
     return render(request, 'pojistenci/generate_pie_chart.html', {"is_staff": request.user.is_staff, "count_range": range(3), "prev_count" : 3})
+
+@login_required
+def generate_password(request):
+    generated_passwords = []
+    error_message = None
+
+    if request.method == "POST":
+        try:
+            length = int(request.POST.get("password_length", 16))
+            if length < 1 or length > 100:
+                raise ValueError
+        except ValueError:
+            error_message = "Délka hesla musí být číslo v rozsahu 1–100."
+        else:
+            use_upper = request.POST.get("use_uppercase") == "on"
+            use_lower = request.POST.get("use_lowercase") == "on"
+            use_digits = request.POST.get("use_digits") == "on"
+            use_special = request.POST.get("use_special") == "on"
+
+            import string
+            import secrets
+
+            character_pool = ""
+
+            if use_upper:
+                character_pool += string.ascii_uppercase
+            if use_lower:
+                character_pool += string.ascii_lowercase
+            if use_digits:
+                character_pool += string.digits
+            if use_special:
+                character_pool += "!@#$%^&*()-_=+[]{}?"
+
+            if not character_pool:
+                error_message = "Vyberte alespoň jednu kategorii znaků."
+            else:
+                for _ in range(5):
+                    generated_passwords.append(
+                        "".join(secrets.choice(character_pool) for _ in range(length))
+                    )
+
+    return render(
+        request,
+        "pojistenci/generate_password.html",
+        {
+            "generated_passwords": generated_passwords,
+            "error_message": error_message,
+        },
+    )
