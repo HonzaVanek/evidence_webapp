@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Skupinový graf{% endblock title %}
+
+{% block style %}{% static "pojistenci/generate_grouped_bar.css" %}{% endblock style %}
+
+{% block content %}
+
+<h1 class="grouped-bar-title">Generování skupinového sloupcového grafu</h1>
+<p class="grouped-bar-subtitle">
+    Zde je možné zadat parametry grafu a aplikace vygeneruje obrázek.
+</p>
+{% if error_message %}
+    <p style="color:red; text-align:center; font-weight:bold;">
+        {{ error_message }}
+    </p>
+{% endif %}
+
+<form id="grouped-bar-form" method="post" class="grouped-bar-form">
+  {% csrf_token %}
+
+  <label for="grouped-bar-groups-number">Počet skupin (1–5):</label>
+  <input type="number" id="grouped-bar-groups-number" name="grouped-bar-groups-number"
+         min="1" max="5" value="{{ prev_groups_count|default:5 }}" required>
+
+  <label for="grouped-bar-items-number">Počet položek v každé skupině (1–10):</label>
+  <input type="number" id="grouped-bar-items-number" name="grouped-bar-items-number"
+         min="1" max="10" value="{{ prev_items_count|default:5 }}" required>
+
+  <label for="y-min">Min Y:</label>
+  <input type="number" id="y-min" name="y-min" step="any" value="{{ prev_y_min|default:0 }}" required>
+
+  <label for="y-max">Max Y:</label>
+  <input type="number" id="y-max" name="y-max" step="any" value="{{ prev_y_max|default:100 }}" required>
+
+  <label for="y-step">Krok osy Y:</label>
+  <input type="number" id="y-step" name="y-step" step="any" value="{{ prev_y_step|default:10 }}" required>
+
+  <div id="labels-container"></div>
+  <div id="colors-container"></div>
+  <div id="values-container"></div>
+
+  <label style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+  <input type="checkbox" name="hide-legend" {% if prev_hide_legend %}checked{% endif %}>
+  Skrýt legendu
+</label>
+
+<label style="display:flex; gap:10px; align-items:center;">
+  <input type="checkbox" name="hide-group-labels" {% if prev_hide_group_labels %}checked{% endif %}>
+  Skrýt názvy skupin na ose X
+</label>
+
+  <button type="submit" class="generate-button">Generovat graf</button>
+</form>
+
+{% if chart_url %}
+  <div style="text-align:center; margin-top: 18px;">
+    <h2>Výsledek</h2>
+    <img src="{{ chart_url }}" alt="Skupinový graf" style="max-width:100%; border-radius: 12px;">
+  </div>
+{% endif %}
+
+<script>
+(function () {
+  const groupsInput = document.getElementById("grouped-bar-groups-number");
+  const itemsInput  = document.getElementById("grouped-bar-items-number");
+  const yMinInput   = document.getElementById("y-min");
+  const yMaxInput   = document.getElementById("y-max");
+  const yStepInput = document.getElementById("y-step");
+
+  const labelsContainer = document.getElementById("labels-container");
+  const colorsContainer = document.getElementById("colors-container");
+  const valuesContainer = document.getElementById("values-container");
+  
+
+  const prevGroupLabels = {{ prev_group_labels|default:"[]"|safe }};
+  const prevItemLabels  = {{ prev_item_labels|default:"[]"|safe }};
+  const prevItemColors  = {{ prev_item_colors|default:"[]"|safe }};
+  const prevValues      = {{ prev_values|default:"[]"|safe }};
+  
+
+
+  function clamp(n, min, max) {
+    n = parseInt(n, 10);
+    if (isNaN(n)) return min;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function esc(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+
+
+
+  function build() {
+    const g = clamp(groupsInput.value, 1, 5);
+    const i = clamp(itemsInput.value, 1, 10);
+    groupsInput.value = g;
+    itemsInput.value = i;
+
+    labelsContainer.innerHTML = "";
+    colorsContainer.innerHTML = "";
+    valuesContainer.innerHTML = "";
+
+    // názvy skupin
+    let html = `<h3>Názvy skupin</h3>`;
+    for (let gg = 0; gg < g; gg++) {
+      const val = prevGroupLabels[gg] ?? `Skupina ${gg+1}`;
+      html += `
+        <label>Skupina ${gg+1}:</label>
+        <input type="text" name="group_label_${gg}" value="${esc(val)}" required>
+      `;
+    }
+    labelsContainer.innerHTML = html;
+
+    // názvy + barvy položek
+    let ch = `<h3>Položky (sloupce)</h3>`;
+    for (let ii = 0; ii < i; ii++) {
+      const lab = prevItemLabels[ii] ?? `Položka ${ii+1}`;
+      const col = prevItemColors[ii] ?? "#3b82f6";
+      ch += `
+        <label>Položka ${ii+1} – název:</label>
+        <input type="text" name="item_label_${ii}" value="${esc(lab)}" required>
+
+        <label>Položka ${ii+1} – barva:</label>
+        <input type="color" name="item_color_${ii}" value="${esc(col)}" required>
+      `;
+    }
+    colorsContainer.innerHTML = ch;
+
+    // hodnoty
+    const yMin = parseFloat(yMinInput.value);
+    const yMax = parseFloat(yMaxInput.value);
+
+    let vh = `<h3>Hodnoty</h3>`;
+    for (let gg = 0; gg < g; gg++) {
+      vh += `<h4>Skupina ${gg+1}</h4>`;
+      for (let ii = 0; ii < i; ii++) {
+        const v = (prevValues[gg] && prevValues[gg][ii] !== undefined) ? prevValues[gg][ii] : "";
+        vh += `
+          <label>Hodnota – Skupina ${gg+1} / Položka ${ii+1}:</label>
+          <input type="number" step="any" name="value_${gg}_${ii}"
+                 min="${isFinite(yMin) ? yMin : ""}"
+                 max="${isFinite(yMax) ? yMax : ""}"
+                 value="${esc(v)}" required>
+        `;
+      }
+    }
+    valuesContainer.innerHTML = vh;
+  }
+
+  groupsInput.addEventListener("input", build);
+  itemsInput.addEventListener("input", build);
+  yMinInput.addEventListener("input", build);
+  yMaxInput.addEventListener("input", build);
+  yStepInput.addEventListener("input", build);
+
+  build();
+})();
+
+console.log("y-max after load:", document.getElementById("y-max").value);
+console.log("y-step after load:", document.getElementById("y-step").value);
+</script>
+
+{% endblock content %}

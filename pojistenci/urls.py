@@ -30,5 +30,6 @@ urlpatterns = [
     path('pojistenci/vychytavky/chart', views.generate_chart, name='generate-chart'),
     path('pojistenci/vychytavky/background', views.remove_background, name='remove-background'),
     path('pojistenci/vychytavky/pie-chart', views.generate_pie_chart, name='generate-pie-chart'),
-    path('pojistenci/vychytavky/password-generator', views.generate_password, name='password-generator')
+    path('pojistenci/vychytavky/password-generator', views.generate_password, name='password-generator'),
+    path('pojistenci/vychytavky/grouped-bar', views.generate_grouped_bar, name='generate-grouped-bar'),
 ]

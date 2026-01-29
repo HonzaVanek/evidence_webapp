@@ -670,3 +670,151 @@ def generate_password(request):
             "error_message": error_message,
         },
     )
+
+
+@login_required
+def generate_grouped_bar(request):
+    template = "pojistenci/generate_grouped_bar.html"
+    ctx = {}
+
+    if request.method == "POST":
+        try:
+            # počty
+            groups_count = int(request.POST.get("grouped-bar-groups-number", 5))
+            items_count  = int(request.POST.get("grouped-bar-items-number", 5))
+            groups_count = max(1, min(5, groups_count))
+            items_count  = max(1, min(10, items_count))
+
+            # osa Y
+            y_min  = float(str(request.POST.get("y-min", "0")).replace(",", "."))
+            y_max  = float(str(request.POST.get("y-max", "100")).replace(",", "."))
+            y_step = float(str(request.POST.get("y-step", "10")).replace(",", "."))
+            hide_legend = request.POST.get("hide-legend") == "on"
+            hide_group_labels = request.POST.get("hide-group-labels") == "on"
+
+            if y_max <= y_min:
+                raise ValueError("Max Y musí být větší než Min Y.")
+            if y_step <= 0:
+                raise ValueError("Krok osy Y musí být kladné číslo.")
+
+            # labels skupin
+            group_labels = []
+            for g in range(groups_count):
+                val = (request.POST.get(f"group_label_{g}", "") or "").strip()
+                group_labels.append(val if val else f"Skupina {g+1}")
+
+            # labels + barvy položek
+            item_labels = []
+            item_colors = []
+            for i in range(items_count):
+                il = (request.POST.get(f"item_label_{i}", "") or "").strip()
+                ic = (request.POST.get(f"item_color_{i}", "#3b82f6") or "").strip()
+                item_labels.append(il if il else f"Položka {i+1}")
+                item_colors.append(ic if ic else "#3b82f6")
+
+            # hodnoty
+            values = []
+            for g in range(groups_count):
+                row = []
+                for i in range(items_count):
+                    raw = (request.POST.get(f"value_{g}_{i}", "") or "").strip()
+                    if raw == "":
+                        raise ValueError(f"Chybí hodnota pro {group_labels[g]} / {item_labels[i]}.")
+                    v = float(raw.replace(",", "."))
+                    if v < y_min or v > y_max:
+                        raise ValueError(
+                            f"Hodnota {v} je mimo rozsah {y_min}–{y_max} ({group_labels[g]} / {item_labels[i]})."
+                        )
+                    row.append(v)
+                values.append(row)
+
+            # --- kreslení ---
+            fig, ax = plt.subplots(figsize=(10, 5), dpi=150)
+            for spine in ax.spines.values():
+                spine.set_visible(False)
+
+            group_positions = list(range(groups_count))
+            total_width = 0.8
+            bar_width = total_width / items_count
+
+            for i in range(items_count):
+                x = [gp - total_width/2 + bar_width/2 + i * bar_width for gp in group_positions]
+                y = [values[g][i] for g in range(groups_count)]
+                ax.bar(x, y, width=bar_width, label=item_labels[i], color=item_colors[i])
+
+            ax.set_xticks(group_positions)
+            
+            ax.set_xticks(group_positions)
+
+            if hide_group_labels:
+                ax.set_xticklabels([])              # žádné názvy
+                ax.tick_params(axis="x", length=0)  # zruší i “čárky” na ose
+            else:
+                ax.set_xticklabels(group_labels)
+
+            # y ticks
+            ticks = []
+            t = y_min
+            while t <= y_max + 1e-9:
+                ticks.append(t)
+                t += y_step
+            ax.set_yticks(ticks)
+
+            ax.tick_params(axis="y", length=0)
+
+            ax.set_ylabel("")
+            ax.grid(axis="y", linestyle="--", alpha=0.35)
+            if not hide_legend:
+                ax.legend(ncols=min(items_count, 5), fontsize=9)
+            fig.tight_layout()
+
+            # --- uložení ---
+            filename = f"grouped_bar_{timezone.now().strftime('%Y%m%d%H%M%S')}.png"
+            save_dir = os.path.join(settings.MEDIA_ROOT, "grouped_bars")
+            os.makedirs(save_dir, exist_ok=True)
+            full_path = os.path.join(save_dir, filename)
+
+            fig.savefig(full_path, format="png", transparent=True)
+            plt.close(fig)
+
+            grouped_bar_image_url = f"{settings.MEDIA_URL}grouped_bars/{filename}"
+            ctx["chart_url"] = grouped_bar_image_url
+
+            # cleanup (necháme posledních 10)
+            try:
+                files = sorted(
+                    [os.path.join(save_dir, f) for f in os.listdir(save_dir)],
+                    key=os.path.getmtime
+                )
+                if len(files) > 10:
+                    for old_file in files[:-10]:
+                        os.remove(old_file)
+            except Exception:
+                pass
+
+            # prefills zpět do šablony
+            ctx["prev_groups_count"] = groups_count
+            ctx["prev_items_count"] = items_count
+            ctx["prev_y_min"] = str(y_min).replace(",", ".")
+            ctx["prev_y_max"] = str(y_max).replace(",", ".")
+            ctx["prev_y_step"] = str(y_step).replace(",", ".")
+            ctx["prev_group_labels"] = group_labels
+            ctx["prev_item_labels"] = item_labels
+            ctx["prev_item_colors"] = item_colors
+            ctx["prev_values"] = values
+            ctx["prev_hide_legend"] = hide_legend
+            ctx["prev_hide_group_labels"] = hide_group_labels
+
+        except Exception as e:
+            ctx["error_message"] = str(e)
+            ctx["prev_groups_count"] = request.POST.get("grouped-bar-groups-number", 2)
+            ctx["prev_items_count"] = request.POST.get("grouped-bar-items-number", 3)
+
+            ctx["prev_y_min"] = str(request.POST.get("y-min", "0")).replace(",", ".")
+            ctx["prev_y_max"] = str(request.POST.get("y-max", "100")).replace(",", ".")
+            ctx["prev_y_step"] = str(request.POST.get("y-step", "10")).replace(",", ".")
+
+            ctx["prev_hide_legend"] = request.POST.get("hide-legend") == "on"
+            ctx["prev_hide_group_labels"] = request.POST.get("hide-group-labels") == "on"
+
+    return render(request, template, ctx)
