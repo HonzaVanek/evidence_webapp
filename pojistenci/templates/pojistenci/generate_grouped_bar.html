@@ -110,29 +110,37 @@
     valuesContainer.innerHTML = "";
 
     // názvy skupin
-    let html = `<h3>Názvy skupin</h3>`;
+    let html = `<h3>Názvy skupin</h3><div class="gb-grid gb-grid--groups">`;
     for (let gg = 0; gg < g; gg++) {
       const val = prevGroupLabels[gg] ?? `Skupina ${gg+1}`;
-      html += `
+      html += `<div class="gb-field">
         <label>Skupina ${gg+1}:</label>
-        <input type="text" name="group_label_${gg}" value="${esc(val)}" required>
+        <input type="text" name="group_label_${gg}" value="${esc(val)}" required>  </div>
       `;
     }
+    html += `</div>`;
     labelsContainer.innerHTML = html;
 
     // názvy + barvy položek
-    let ch = `<h3>Položky (sloupce)</h3>`;
+    let ch = `<h3>Položky (sloupce)</h3><div class="gb-grid gb-grid--items">`;
     for (let ii = 0; ii < i; ii++) {
       const lab = prevItemLabels[ii] ?? `Položka ${ii+1}`;
       const col = prevItemColors[ii] ?? "#3b82f6";
-      ch += `
-        <label>Položka ${ii+1} – název:</label>
-        <input type="text" name="item_label_${ii}" value="${esc(lab)}" required>
 
-        <label>Položka ${ii+1} – barva:</label>
-        <input type="color" name="item_color_${ii}" value="${esc(col)}" required>
+      ch += `
+        <div class="gb-item">
+          <div class="gb-item__name">
+            <label>Položka ${ii+1} – název:</label>
+            <input type="text" name="item_label_${ii}" value="${esc(lab)}" required>
+          </div>
+          <div class="gb-item__color">
+            <label>Barva:</label>
+            <input type="color" name="item_color_${ii}" value="${esc(col)}" required>
+          </div>
+        </div>
       `;
     }
+    ch += `</div>`;
     colorsContainer.innerHTML = ch;
 
     // hodnoty
@@ -141,17 +149,19 @@
 
     let vh = `<h3>Hodnoty</h3>`;
     for (let gg = 0; gg < g; gg++) {
-      vh += `<h4>Skupina ${gg+1}</h4>`;
+      vh += `<h4>Skupina ${gg+1}</h4><div class="gb-grid gb-grid--values">`;
       for (let ii = 0; ii < i; ii++) {
         const v = (prevValues[gg] && prevValues[gg][ii] !== undefined) ? prevValues[gg][ii] : "";
         vh += `
+        <div class="gb-field">
           <label>Hodnota – Skupina ${gg+1} / Položka ${ii+1}:</label>
           <input type="number" step="any" name="value_${gg}_${ii}"
                  min="${isFinite(yMin) ? yMin : ""}"
                  max="${isFinite(yMax) ? yMax : ""}"
-                 value="${esc(v)}" required>
+                 value="${esc(v)}" required> </div>
         `;
       }
+      vh += `</div>`;
     }
     valuesContainer.innerHTML = vh;
   }
