@@ -9,7 +9,7 @@
 <div class="homepage-obsah">
     <h1 class="homepage-nadpis">Webová aplikace pro evidenci pojištěnců</h1> 
     <p class="homepage-popis">
-        Aplikace obsahuje kompletní správu (CRUD) pojištěných (např. "Jan Novák") a jejich pojištění (např. "pojištění bytu"). CRUD lze ale provádět i přes implementované REST API. Pokračujte prosím výběrem položky z MENU nahoře.
+        Po zaregistrování aplikace obsahuje kompletní správu (CRUD) <a href='{% url "pojistenci" %}'>pojištěných</a> (např. "Jan Novák") a jejich <a href='{% url "pojisteni-vypis" %}'>pojištění</a> (např. "pojištění bytu"). CRUD lze ale provádět i přes implementované <a href='/api/'>REST API</a>. Položka <a href='{% url "vypis-api" %}'>API</a> v menu nahoře je pak stránka, kde je jen implementované API, co tahá info z databáeze - zobrazuje tedy to samé jako stránka <a href='{% url "pojistenci" %}'>Pojištěnci</a>. Nad rámec toho jsem si vymyslel sekci <a href='{% url "vychytavky" %}'>Vychytávky</a>, kde si zkouším různé užitečné věci, co lze naprogramovat v Pythonu. Pokračujte prosím výběrem položky z MENU nahoře.
     </p>
     <ul class="homepage-seznam">
         <li>Vytvoření pojištěného</li>
