@@ -734,16 +734,15 @@ def generate_grouped_bar(request):
                 spine.set_visible(False)
 
             group_positions = list(range(groups_count))
-            total_width = 0.8
-            bar_width = total_width / items_count
+            total_width = 0.65
+            inner_gap = 0.02
+            bar_width = (total_width - inner_gap * (items_count - 1)) / items_count
 
             for i in range(items_count):
-                x = [gp - total_width/2 + bar_width/2 + i * bar_width for gp in group_positions]
+                x = [gp - total_width/2 + bar_width/2 + i * (bar_width + inner_gap) for gp in group_positions]
                 y = [values[g][i] for g in range(groups_count)]
                 ax.bar(x, y, width=bar_width, label=item_labels[i], color=item_colors[i])
 
-            ax.set_xticks(group_positions)
-            
             ax.set_xticks(group_positions)
 
             if hide_group_labels:

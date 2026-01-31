@@ -20,21 +20,21 @@
 <form id="grouped-bar-form" method="post" class="grouped-bar-form">
   {% csrf_token %}
 
-  <label for="grouped-bar-groups-number">Počet skupin (1–5):</label>
+  <label for="grouped-bar-groups-number">Počet skupin sloupců (1–5):</label>
   <input type="number" id="grouped-bar-groups-number" name="grouped-bar-groups-number"
          min="1" max="5" value="{{ prev_groups_count|default:5 }}" required>
 
-  <label for="grouped-bar-items-number">Počet položek v každé skupině (1–10):</label>
+  <label for="grouped-bar-items-number">Počet sloupců v každé skupině (1–10):</label>
   <input type="number" id="grouped-bar-items-number" name="grouped-bar-items-number"
          min="1" max="10" value="{{ prev_items_count|default:5 }}" required>
 
-  <label for="y-min">Min Y:</label>
+  <label for="y-min">počáteční hodnota na ose Y (obvykle 0):</label>
   <input type="number" id="y-min" name="y-min" step="any" value="{{ prev_y_min|default:0 }}" required>
 
-  <label for="y-max">Max Y:</label>
+  <label for="y-max">Nejvyšší hodnota na ose Y (obvykle 100):</label>
   <input type="number" id="y-max" name="y-max" step="any" value="{{ prev_y_max|default:100 }}" required>
 
-  <label for="y-step">Krok osy Y:</label>
+  <label for="y-step">Zobrazené kroky na ose Y (např. 10, 25 nebo 50):</label>
   <input type="number" id="y-step" name="y-step" step="any" value="{{ prev_y_step|default:10 }}" required>
 
   <div id="labels-container"></div>
@@ -96,6 +96,50 @@
       .replaceAll("'", "&#039;");
   }
 
+function getCurrentGroupNames(g) {
+  const names = [];
+  for (let gg = 0; gg < g; gg++) {
+    const inp = document.querySelector(`input[name="group_label_${gg}"]`);
+    const v = (inp?.value || "").trim();
+    names.push(v || `Skupina ${gg+1}`);
+  }
+  return names;
+}
+
+function getCurrentItemNames(i) {
+  const names = [];
+  for (let ii = 0; ii < i; ii++) {
+    const inp = document.querySelector(`input[name="item_label_${ii}"]`);
+    const v = (inp?.value || "").trim();
+    names.push(v || `Položka ${ii+1}`);
+  }
+  return names;
+}
+
+function refreshValueLabels() {
+  const g = clamp(groupsInput.value, 1, 5);
+  const i = clamp(itemsInput.value, 1, 10);
+
+  const groupNames = getCurrentGroupNames(g);
+  const itemNames  = getCurrentItemNames(i);
+
+  document.querySelectorAll(`#values-container .gb-group-title[data-g]`).forEach(h => {
+    const gg = parseInt(h.dataset.g, 10);
+    const gn = groupNames[gg] || `Skupina ${gg+1}`;
+    h.textContent = gn;
+  });
+
+  document.querySelectorAll(`#values-container label[data-g][data-i]`).forEach(lbl => {
+    const gg = parseInt(lbl.dataset.g, 10);
+    const ii = parseInt(lbl.dataset.i, 10);
+
+    const gn = groupNames[gg] || `Skupina ${gg+1}`;
+    const iname = itemNames[ii] || `Položka ${ii+1}`;
+
+    // tady si text uprav dle vkusu:
+    lbl.textContent = `Hodnota – ${gn} / ${iname}:`;
+  });
+}
 
 
 
@@ -149,21 +193,36 @@
 
     let vh = `<h3>Hodnoty</h3>`;
     for (let gg = 0; gg < g; gg++) {
-      vh += `<h4>Skupina ${gg+1}</h4><div class="gb-grid gb-grid--values">`;
+      vh += `<h4 class="gb-group-title" data-g="${gg}">Skupina ${gg+1}</h4><div class="gb-grid gb-grid--values">`;
       for (let ii = 0; ii < i; ii++) {
         const v = (prevValues[gg] && prevValues[gg][ii] !== undefined) ? prevValues[gg][ii] : "";
         vh += `
-        <div class="gb-field">
-          <label>Hodnota – Skupina ${gg+1} / Položka ${ii+1}:</label>
-          <input type="number" step="any" name="value_${gg}_${ii}"
-                 min="${isFinite(yMin) ? yMin : ""}"
-                 max="${isFinite(yMax) ? yMax : ""}"
-                 value="${esc(v)}" required> </div>
+          <div class="gb-field">
+            <label data-g="${gg}" data-i="${ii}">Hodnota – Skupina ${gg+1} / Položka ${ii+1}:</label>
+            <input type="number" step="any" name="value_${gg}_${ii}"
+                  min="${isFinite(yMin) ? yMin : ""}"
+                  max="${isFinite(yMax) ? yMax : ""}"
+                  value="${esc(v)}" required>
+          </div>
         `;
       }
       vh += `</div>`;
     }
     valuesContainer.innerHTML = vh;
+    
+      // po vykreslení celé struktury přepiš labely podle aktuálních názvů
+    refreshValueLabels();
+
+    // a napoj živé přepisování při psaní do názvů
+    for (let gg = 0; gg < g; gg++) {
+      const inp = document.querySelector(`input[name="group_label_${gg}"]`);
+      if (inp) inp.addEventListener("input", refreshValueLabels);
+    }
+    for (let ii = 0; ii < i; ii++) {
+      const inp = document.querySelector(`input[name="item_label_${ii}"]`);
+      if (inp) inp.addEventListener("input", refreshValueLabels);
+    }
+
   }
 
   groupsInput.addEventListener("input", build);
@@ -175,8 +234,59 @@
   build();
 })();
 
-console.log("y-max after load:", document.getElementById("y-max").value);
-console.log("y-step after load:", document.getElementById("y-step").value);
+
+function smoothScrollTo(endY, duration = 1400) {
+    const startY = window.scrollY;
+    const distance = endY - startY;
+    let startTime = null;
+
+    // Krásná, plynulá ease-in-out funkce
+    function easeInOut(t) {
+        return t < 0.5 
+            ? 4 * t * t * t                    // pomalý rozjezd
+            : 1 - Math.pow(-2 * t + 2, 3) / 2; // zpomalující dojezd
+    }
+
+    function step(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const progress = timestamp - startTime;
+        const percent = Math.min(progress / duration, 1);
+
+        const eased = easeInOut(percent);
+
+        window.scrollTo(0, startY + distance * eased);
+
+        if (percent < 1) {
+            requestAnimationFrame(step);
+        }
+    }
+
+    requestAnimationFrame(step);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("grouped-bar-form");
+
+    // 1) Při odeslání nastavíme flag
+    if (form) {
+        form.addEventListener("submit", function () {
+            sessionStorage.setItem("grouped_chart_scroll_after_submit", "1");
+        });
+    }
+
+    // 2) Po reloadu zkontrolujeme flag
+    if (sessionStorage.getItem("grouped_chart_scroll_after_submit") === "1") {
+
+        sessionStorage.removeItem("grouped_chart_scroll_after_submit");
+
+        // počkáme 1 sekundu
+        setTimeout(() => {
+            const end = document.documentElement.scrollHeight;
+            smoothScrollTo(end, 1400); // 1.4s animace
+        }, 800);
+    }
+});
 </script>
 
 {% endblock content %}
