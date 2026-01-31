@@ -1,10 +1,11 @@
 Ahoj {{ user.username }},
 
-děkujeme za registraci. Pro aktivaci klikni na tento odkaz:
+děkujeme za registraci. Pro aktivaci svého účtu klikni na následující odkaz:
 
 {{ activation_link }}
 
-Jestli je to nějakej haluz a tenhle mail jsi dostal omylem tak sry :)
+A to je vesměs všechno. Jestli je to nějakej haluz a tenhle mail jsi dostal omylem tak se omlouváme, někdo asi tvůj email vyplnil na stránce https://vanekj.pythonanywhere.com/registrace/ To je mimochodem hodně dobrá stránka, takže jestli chceš, tak se tam rozhodně zaregistruj, protože neprohloupíš.
 
 S pozdravem,
-Tvůj blablabla
+
+Honza V., tvůrce stránky https://vanekj.pythonanywhere.com

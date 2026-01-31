@@ -8,6 +8,7 @@
 {% block content %}
 <div class="login-container">
     <h1>Přihlášení</h1>
+    <p>Pro přístup k jakýmkoli funkcím na tomto webu je nutné se přihlásit. Pokud ještě nemáte svůj účet, <a href="{% url 'registrace' %}">zaregistrujte se</a> - je to zcela zdarma, potřebujete jen platný email, kam vám zašleme registrační odkaz.</p>
     <form method="post">
         {% csrf_token %}
 
