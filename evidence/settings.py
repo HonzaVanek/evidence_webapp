@@ -171,7 +171,7 @@ LOGOUT_REDIRECT_URL = '/login'
 # ---- EMAIL ----
 if APP_ENV == "prod":
     EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
-    DEFAULT_FROM_EMAIL = "tvojemama@kekor.cz"
+    DEFAULT_FROM_EMAIL = "noreply@kekor.cz"
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
     DEFAULT_FROM_EMAIL = "local@test.project"

@@ -29,6 +29,9 @@
             <label for="id_password">Heslo</label>
         </div>
         <button type="submit" class="btn">Přihlásit se</button>
+        <div style="margin-top:12px; text-align:center;" class="password-reset">
+            <a href="{% url 'password_reset' %}">Účet už máte, ale zapomněli jste heslo?</a>
+        </div>
     </form>
 </div>
 {% endblock content %}
