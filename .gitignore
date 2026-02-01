@@ -32,3 +32,4 @@ staticfiles/
 Thumbs.db
 
 evidence/settings.env
+APP_ENV na prod.txt
