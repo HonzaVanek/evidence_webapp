@@ -36,4 +36,5 @@ urlpatterns = [
     path('pojistenci/vychytavky/pie-chart', views.generate_pie_chart, name='generate-pie-chart'),
     path('pojistenci/vychytavky/password-generator', views.generate_password, name='password-generator'),
     path('pojistenci/vychytavky/grouped-bar', views.generate_grouped_bar, name='generate-grouped-bar'),
+    path('pojistenci/vychytavky/bar-chart', views.generate_bar_chart, name='generate-bar-chart')
 ]

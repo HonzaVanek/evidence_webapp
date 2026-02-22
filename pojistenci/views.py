@@ -817,3 +817,129 @@ def generate_grouped_bar(request):
             ctx["prev_hide_group_labels"] = request.POST.get("hide-group-labels") == "on"
 
     return render(request, template, ctx)
+
+@login_required
+def generate_bar_chart(request):
+    template = "pojistenci/generate_bar_chart.html"
+    ctx = {}
+
+    if request.method == "POST":
+        try:
+            # počty
+            bars_count = int(request.POST.get("bar-chart-bars-number", 5))
+            bars_count = max(1, min(15, bars_count))
+
+            # osa Y
+            y_min = float(str(request.POST.get("y-min", "0")).replace(",", "."))
+            y_max = float(str(request.POST.get("y-max", "100")).replace(",", "."))
+            y_step = float(str(request.POST.get("y-step", "10")).replace(",", "."))
+            hide_bar_labels = request.POST.get("hide-bar-labels") == "on"
+
+            if y_max <= y_min:
+                raise ValueError("Max Y musí být větší než Min Y.")
+            if y_step <= 0:
+                raise ValueError("Krok osy Y musí být kladné číslo.")
+
+            # labely a barvy
+            bar_labels = []
+            bar_colors = []
+
+            for i in range(bars_count):
+                label = (request.POST.get(f"bar_label_{i}", "") or "").strip()
+                bar_labels.append(label if label else f"Sloupec {i+1}")
+
+                col = (request.POST.get(f"bar_color_{i}") or "#3b82f6").strip()
+                bar_colors.append(col)
+
+            # hodnoty
+            values = []
+            for i in range(bars_count):
+                raw = (request.POST.get(f"bar_value_{i}", "") or "").strip()
+                if raw == "":
+                    raise ValueError(f"Chybí hodnota pro {bar_labels[i]}.")
+                v = float(raw.replace(",", "."))
+                if v < y_min or v > y_max:
+                    raise ValueError(
+                        f"Hodnota {v} je mimo rozsah {y_min}–{y_max} ({bar_labels[i]})."
+                    )
+                values.append(v)
+
+            # --- kreslení ---
+            fig, ax = plt.subplots(figsize=(10, 5), dpi=150)
+            for spine in ax.spines.values():
+                spine.set_visible(False)
+
+            x_positions = list(range(bars_count))
+            ax.bar(x_positions, values, color=bar_colors, width=0.6, zorder=3)
+
+            ax.set_ylim(y_min, y_max)
+
+            ax.set_xticks(x_positions)
+
+            if hide_bar_labels:
+                ax.set_xticklabels([])
+                ax.tick_params(axis="x", length=0)
+            else:
+                ax.set_xticklabels(bar_labels, rotation=45, ha="right", rotation_mode="anchor")
+                ax.tick_params(axis="x", length=0, labelsize=9)
+
+
+            # y ticks
+            ax.tick_params(axis="y", length=0)
+            ticks = []
+            t = y_min
+            while t <= y_max + 1e-9:
+                ticks.append(t)
+                t += y_step
+            ax.set_yticks(ticks)
+
+            ax.set_ylabel("")
+            ax.grid(axis="y", linestyle="-", alpha=0.35)
+            ax.set_axisbelow(True)   # <-- grid pod sloupce
+            fig.tight_layout()
+
+            # --- uložení ---
+            filename = f"bar_chart_{timezone.now().strftime('%Y%m%d%H%M%S')}.png"
+            save_dir = os.path.join(settings.MEDIA_ROOT, "bar_charts")
+            os.makedirs(save_dir, exist_ok=True)
+            full_path = os.path.join(save_dir, filename)
+
+            fig.savefig(full_path, format="png", transparent=True)
+            plt.close(fig)
+
+            bar_chart_image_url = f"{settings.MEDIA_URL}bar_charts/{filename}"
+            ctx["chart_url"] = bar_chart_image_url
+
+            # cleanup (necháme posledních 10)
+            try:
+                files = sorted(
+                    [os.path.join(save_dir, f) for f in os.listdir(save_dir)],
+                    key=os.path.getmtime
+                )
+                if len(files) > 10:
+                    for old_file in files[:-10]:
+                        os.remove(old_file)
+            except Exception:
+                pass
+
+            # prefills zpět do šablony
+            ctx["prev_bars_count"] = bars_count
+            ctx["prev_y_min"] = str(y_min).replace(",", ".")
+            ctx["prev_y_max"] = str(y_max).replace(",", ".")
+            ctx["prev_y_step"] = str(y_step).replace(",", ".")
+            ctx["prev_bar_labels"] = bar_labels
+            # ctx["prev_bar_color"] = request.POST.get("bar_color", "#3b82f6")
+            ctx["prev_values"] = values
+            ctx["prev_hide_bar_labels"] = hide_bar_labels
+            ctx["prev_bar_colors"] = bar_colors
+
+        except Exception as e:
+            ctx["error_message"] = str(e)
+            ctx["prev_bars_count"] = request.POST.get("bar-chart-bars-number", 5)
+            ctx["prev_y_min"] = str(request.POST.get("y-min", "0")).replace(",", ".")
+            ctx["prev_y_max"] = str(request.POST.get("y-max", "100")).replace(",", ".")
+            ctx["prev_y_step"] = str(request.POST.get("y-step", "10")).replace(",", ".")
+            ctx["prev_hide_bar_labels"] = request.POST.get("hide-bar-labels") == "on"
+            ctx["prev_bar_colors"] = []
+
+    return render(request, template, ctx)

@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sloupcový graf{% endblock title %}
+{% block style %}{% static "pojistenci/generate_bar_chart.css" %}{% endblock style %}
+
+{% block content %}
+
+<h1 class="bar-chart-title">Generování sloupcového grafu</h1>
+<p class="bar-chart-subtitle">
+  Zde je možné zadat parametry grafu a aplikace vygeneruje obrázek.
+</p>
+
+{% if error_message %}
+  <p style="color:red; text-align:center; font-weight:bold;">
+    {{ error_message }}
+  </p>
+{% endif %}
+
+<form id="bar-chart-form" method="post" class="bar-chart-form">
+  {% csrf_token %}
+
+  <label for="bar-chart-bars-number">Počet sloupců (1–15):</label>
+  <input
+    type="number"
+    id="bar-chart-bars-number"
+    name="bar-chart-bars-number"
+    min="1"
+    max="15"
+    value="{{ prev_bars_count|default:5 }}"
+    required
+  >
+
+  <label for="y-min">Počáteční hodnota na ose Y (obvykle 0):</label>
+  <input type="number" id="y-min" name="y-min" step="any" value="{{ prev_y_min|default:0 }}" required>
+
+  <label for="y-max">Nejvyšší hodnota na ose Y (obvykle 100):</label>
+  <input type="number" id="y-max" name="y-max" step="any" value="{{ prev_y_max|default:100 }}" required>
+
+  <label for="y-step">Zobrazené kroky na ose Y (např. 10, 25 nebo 50):</label>
+  <input type="number" id="y-step" name="y-step" step="any" value="{{ prev_y_step|default:10 }}" required>
+  
+  <div id="labels-container"></div>
+  <div id="values-container"></div>
+
+  <label style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+  <input type="checkbox" name="hide-bar-labels"
+         {% if prev_hide_bar_labels %}checked{% endif %}>
+  Skrýt názvy sloupců na ose X
+  </label>
+
+  <button type="submit" class="generate-button">Vygenerovat graf</button>
+</form>
+
+{% if chart_url %}
+  <div id="bar-chart-result" style="text-align:center; margin-top: 18px;">
+    <h2>Výsledek</h2>
+    <img src="{{ chart_url }}" alt="Sloupcový graf" style="max-width:100%; border-radius: 12px;">
+  </div>
+{% endif %}
+
+<script>
+(function () {
+  const barsInput  = document.getElementById("bar-chart-bars-number");
+  const yMinInput  = document.getElementById("y-min");
+  const yMaxInput  = document.getElementById("y-max");
+  const yStepInput = document.getElementById("y-step");
+
+  const labelsContainer = document.getElementById("labels-container");
+  const valuesContainer = document.getElementById("values-container");
+
+  const prevBarLabels = {{ prev_bar_labels|default:"[]"|safe }};
+  const prevValues    = {{ prev_values|default:"[]"|safe }};
+  const prevBarColors = {{ prev_bar_colors|default:"[]"|safe }};
+
+  function clamp(n, min, max) {
+    n = parseInt(n, 10);
+    if (isNaN(n)) return min;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function esc(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function build() {
+    const b = clamp(barsInput.value, 1, 15);
+    barsInput.value = b;
+
+    labelsContainer.innerHTML = "";
+    valuesContainer.innerHTML = "";
+
+    // Labels
+    let lh = `<h3>Názvy sloupců</h3><div class="bc-grid bc-grid--labels">`;
+    for (let i = 0; i < b; i++) {
+      const val = prevBarLabels[i] ?? `Sloupec ${i+1}`;
+      const col = prevBarColors[i] ?? "#3b82f6";
+      lh += `
+        <div class="bc-field">
+            <label>Sloupec ${i+1} – název:</label>
+            <input type="text" name="bar_label_${i}" value="${esc(val)}" required>
+
+            <label style="margin-top:10px;">Barva:</label>
+            <input type="color" name="bar_color_${i}" value="${esc(col)}" required>
+        </div>
+`;
+    }
+    lh += `</div>`;
+    labelsContainer.innerHTML = lh;
+
+    // Values
+    const yMin = parseFloat(yMinInput.value);
+    const yMax = parseFloat(yMaxInput.value);
+
+    let vh = `<h3>Hodnoty</h3><div class="bc-grid bc-grid--values">`;
+    for (let i = 0; i < b; i++) {
+      const v = (prevValues[i] !== undefined) ? prevValues[i] : "";
+      vh += `
+        <div class="bc-field">
+          <label>Hodnota – ${esc(prevBarLabels[i] ?? `Sloupec ${i+1}`)}:</label>
+          <input type="number" step="any" name="bar_value_${i}"
+                 min="${isFinite(yMin) ? yMin : ""}"
+                 max="${isFinite(yMax) ? yMax : ""}"
+                 value="${esc(v)}" required>
+        </div>
+      `;
+    }
+    vh += `</div>`;
+    valuesContainer.innerHTML = vh;
+  }
+
+  barsInput.addEventListener("input", build);
+  yMinInput.addEventListener("input", build);
+  yMaxInput.addEventListener("input", build);
+  yStepInput.addEventListener("input", build);
+
+  build();
+})();
+</script>
+
+<script>
+function smoothScrollTo(endY, duration = 1400) {
+  const startY = window.scrollY;
+  const distance = endY - startY;
+  let startTime = null;
+
+  function easeInOut(t) {
+    return t < 0.5
+      ? 4 * t * t * t
+      : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  function step(timestamp) {
+    if (!startTime) startTime = timestamp;
+    const progress = timestamp - startTime;
+    const percent = Math.min(progress / duration, 1);
+    const eased = easeInOut(percent);
+    window.scrollTo(0, startY + distance * eased);
+    if (percent < 1) requestAnimationFrame(step);
+  }
+
+  requestAnimationFrame(step);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("bar-chart-form");
+
+  if (form) {
+    form.addEventListener("submit", function () {
+      sessionStorage.setItem("bar_chart_scroll_after_submit", "1");
+    });
+  }
+
+  if (sessionStorage.getItem("bar_chart_scroll_after_submit") === "1") {
+    sessionStorage.removeItem("bar_chart_scroll_after_submit");
+
+    setTimeout(() => {
+      const end = document.documentElement.scrollHeight;
+      smoothScrollTo(end, 1400);
+    }, 800);
+  }
+});
+</script>
+
+{% endblock content %}

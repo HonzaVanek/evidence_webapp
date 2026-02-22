@@ -1,0 +1,189 @@
+/* ===============================
+   Nadpisy a popis
+   =============================== */
+.bar-chart-title {
+  text-align: center;
+  margin-top: 30px;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 2rem;
+}
+
+.bar-chart-subtitle {
+  width: 90%;
+  max-width: 760px;
+  margin: 0 auto 26px;
+  padding: 12px 16px;
+  background-color: #eaf4ff;
+  border-left: 4px solid #1976d2;
+  border-radius: 4px;
+  font-style: italic;
+  color: #555;
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* ===============================
+   Formulář – karta
+   =============================== */
+.bar-chart-form {
+  width: 90%;
+  max-width: 820px;
+  margin: 0 auto 30px;
+  padding: 22px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+}
+
+/* ===============================
+   Základní labely + inputy
+   =============================== */
+.bar-chart-form label {
+  display: block;
+  margin: 12px 0 6px;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.bar-chart-form input[type="number"],
+.bar-chart-form input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #cfd6dd;
+  border-radius: 8px;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bar-chart-form input[type="number"]:focus,
+.bar-chart-form input[type="text"]:focus {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 3px rgba(25,118,210,0.15);
+}
+
+/* Color input */
+.bar-chart-form input[type="color"] {
+  width: 64px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid #cfd6dd;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* ===============================
+   Sekční nadpisy
+   =============================== */
+.bar-chart-form h3 {
+  margin: 22px 0 10px;
+  font-size: 1.2rem;
+  color: #222;
+}
+
+/* ===============================
+   Vzhled řádek
+   =============================== */
+.bc-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.bc-row .bc-field {
+  flex: 1 1 220px;
+}
+
+/* ===============================
+   Grid (labels / values)
+   =============================== */
+.bc-grid {
+  display: grid;
+  gap: 14px;
+  margin-top: 10px;
+  margin-bottom: 6px;
+}
+
+.bc-grid--labels {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bc-grid--values {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
+  .bc-grid--labels,
+  .bc-grid--values {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===============================
+   Pole v gridu (mini karta)
+   =============================== */
+.bc-field {
+  background: #f8fafc;
+  border: 1px solid #e6edf5;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.bc-field label {
+  margin-top: 0;
+}
+
+/* ===============================
+   Tlačítko
+   =============================== */
+.generate-button {
+  width: 100%;
+  margin-top: 18px;
+  padding: 12px;
+  background-color: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.05s ease;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.generate-button:hover {
+  background-color: #115293;
+}
+
+.generate-button:active {
+  transform: translateY(1px);
+}
+
+/* ===============================
+   Výsledek (obrázek)
+   =============================== */
+#bar-chart-result h2 {
+  margin-top: 26px;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+#bar-chart-result img {
+  box-shadow: 0 10px 18px rgba(0,0,0,0.08);
+  background: #fff;
+}
+
+/* ===============================
+   Mobile padding
+   =============================== */
+@media (max-width: 480px) {
+  .bar-chart-form {
+    padding: 16px;
+  }
+}
