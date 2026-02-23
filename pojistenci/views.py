@@ -708,9 +708,9 @@ def generate_grouped_bar(request):
             item_colors = []
             for i in range(items_count):
                 il = (request.POST.get(f"item_label_{i}", "") or "").strip()
-                ic = (request.POST.get(f"item_color_{i}", "#3b82f6") or "").strip()
+                ic = (request.POST.get(f"item_color_{i}", "#00469B") or "").strip()
                 item_labels.append(il if il else f"Položka {i+1}")
-                item_colors.append(ic if ic else "#3b82f6")
+                item_colors.append(ic if ic else "#00469B")
 
             # hodnoty
             values = []
@@ -848,7 +848,7 @@ def generate_bar_chart(request):
                 label = (request.POST.get(f"bar_label_{i}", "") or "").strip()
                 bar_labels.append(label if label else f"Sloupec {i+1}")
 
-                col = (request.POST.get(f"bar_color_{i}") or "#3b82f6").strip()
+                col = (request.POST.get(f"bar_color_{i}") or "#00469B").strip()
                 bar_colors.append(col)
 
             # hodnoty

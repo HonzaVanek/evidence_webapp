@@ -136,7 +136,6 @@ function refreshValueLabels() {
     const gn = groupNames[gg] || `Skupina ${gg+1}`;
     const iname = itemNames[ii] || `Položka ${ii+1}`;
 
-    // tady si text uprav dle vkusu:
     lbl.textContent = `Hodnota – ${gn} / ${iname}:`;
   });
 }
@@ -169,7 +168,7 @@ function refreshValueLabels() {
     let ch = `<h3>Položky (sloupce)</h3><div class="gb-grid gb-grid--items">`;
     for (let ii = 0; ii < i; ii++) {
       const lab = prevItemLabels[ii] ?? `Položka ${ii+1}`;
-      const col = prevItemColors[ii] ?? "#3b82f6";
+      const col = prevItemColors[ii] ?? "#D70C0F";
 
       ch += `
         <div class="gb-item">
