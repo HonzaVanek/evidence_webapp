@@ -1,0 +1,119 @@
+.csv-title{
+  text-align:center;
+  margin-top:30px;
+  margin-bottom:15px;
+  color:#333;
+  font-size:2rem;
+}
+
+.csv-subtitle{
+  width:90%;
+  max-width:760px;
+  margin:0 auto 26px;
+  padding:12px 16px;
+  background-color:#eaf4ff;
+  border-left:4px solid #1976d2;
+  border-radius:4px;
+  font-style:italic;
+  color:#555;
+  line-height:1.4;
+  text-align:center;
+}
+
+.csv-error{
+  color:#b00020;
+  text-align:center;
+  font-weight:700;
+  margin: 10px 0 18px;
+}
+
+.csv-form{
+  width:90%;
+  max-width:820px;
+  margin:0 auto 30px;
+  padding:22px;
+  background:#fff;
+  border-radius:12px;
+  box-shadow:0 8px 16px rgba(0,0,0,0.08);
+}
+
+.csv-form label{
+  display:block;
+  margin:12px 0 6px;
+  font-weight:600;
+  color:#333;
+  font-size:0.95rem;
+}
+
+.csv-form input[type="file"]{
+  width:100%;
+  padding:12px;
+  border:1px solid #cfd6dd;
+  border-radius:8px;
+  background:#fff;
+}
+
+.file-info{
+  margin-top:12px;
+  padding:12px 16px;
+  background:#f8fafc;
+  border:1px solid #e6edf5;
+  border-radius:10px;
+  color:#444;
+}
+
+.generate-button{
+  width:100%;
+  margin-top:18px;
+  padding:12px;
+  background-color:#1976d2;
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  font-size:1rem;
+  cursor:pointer;
+  transition:background-color 0.2s ease, transform 0.05s ease;
+  text-transform:uppercase;
+  font-weight:700;
+}
+
+.generate-button:disabled{
+  opacity:0.55;
+  cursor:not-allowed;
+}
+
+.generate-button:hover:enabled{
+  background-color:#115293;
+}
+
+.generate-button:active:enabled{
+  transform:translateY(1px);
+}
+
+.csv-result{
+  width:90%;
+  max-width:820px;
+  margin: 0 auto;
+  text-align:center;
+  padding: 18px 0 10px;
+}
+
+.csv-result h2{
+  margin: 26px 0 10px;
+  color:#333;
+}
+
+.download-button{
+  display:inline-block;
+  padding:12px 18px;
+  border-radius:10px;
+  background:#1976d2;
+  color:#fff;
+  text-decoration:none;
+  font-weight:700;
+  text-transform:uppercase;
+}
+
+.download-button:hover{
+  background:#115293;
+}

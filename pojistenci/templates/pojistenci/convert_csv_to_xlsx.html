@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}CSV → XLSX{% endblock title %}
+{% block style %}{% static "pojistenci/convert_csv_to_xlsx.css" %}{% endblock style %}
+
+{% block content %}
+
+<h1 class="csv-title">Převod CSV → XLSX</h1>
+<p class="csv-subtitle">
+  Zde můžete nahrát CSV soubor. Aplikace ho převede do Excelu (XLSX) a nabídne ke stažení. Jiné konverze zatím nevedeme :)
+</p>
+
+{% if error_message %}
+  <p class="csv-error">{{ error_message }}</p>
+{% endif %}
+
+<form id="csv-form" method="post" enctype="multipart/form-data" class="csv-form">
+  {% csrf_token %}
+
+  <label for="csv_file">CSV soubor:</label>
+  <input type="file" id="csv_file" name="csv_file" accept=".csv,text/csv" required>
+
+  <div id="file-info" class="file-info" style="display:none;"></div>
+
+  <button id="submit-btn" type="submit" class="generate-button" disabled>
+    Převést na XLSX
+  </button>
+</form>
+
+{% if result_url %}
+  <div class="csv-result">
+    <h2>Hotovo</h2>
+    <p>Soubor je připraven:</p>
+    <a class="download-button" href="{{ result_url }}" download>Stáhnout XLSX</a>
+  </div>
+{% endif %}
+
+<script>
+(function () {
+  const input = document.getElementById("csv_file");
+  const info = document.getElementById("file-info");
+  const btn = document.getElementById("submit-btn");
+
+  function humanSize(bytes) {
+    if (!bytes && bytes !== 0) return "";
+    const units = ["B", "KB", "MB", "GB"];
+    let i = 0;
+    let n = bytes;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    return `${n.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+  }
+
+  input.addEventListener("change", () => {
+    const f = input.files && input.files[0];
+    if (!f) {
+      info.style.display = "none";
+      btn.disabled = true;
+      return;
+    }
+    info.style.display = "block";
+    info.textContent = `Vybraný soubor: ${f.name} (${humanSize(f.size)})`;
+    btn.disabled = false;
+  });
+})();
+</script>
+
+{% endblock content %}

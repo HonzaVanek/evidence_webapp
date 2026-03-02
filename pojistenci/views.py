@@ -19,7 +19,7 @@ from .forms import VlastniLoginForm, RegistraceForm
 from django.core.mail import send_mail, EmailMessage
 from django.template.loader import render_to_string
 from django.conf import settings
-from openpyxl import load_workbook
+from openpyxl import load_workbook, Workbook
 import requests
 from django.db import transaction
 from django.db.models import Q
@@ -38,6 +38,9 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import PathPatch
 from matplotlib.patches import Wedge
 from matplotlib.path import Path
+import csv
+from io import TextIOWrapper
+
 
 # Create your views here.
 
@@ -941,5 +944,81 @@ def generate_bar_chart(request):
             ctx["prev_y_step"] = str(request.POST.get("y-step", "10")).replace(",", ".")
             ctx["prev_hide_bar_labels"] = request.POST.get("hide-bar-labels") == "on"
             ctx["prev_bar_colors"] = []
+
+    return render(request, template, ctx)
+
+@login_required
+def convert_csv_to_xlsx(request):
+    template = "pojistenci/convert_csv_to_xlsx.html"
+    ctx = {}
+
+    if request.method == "POST":
+        try:
+            up = request.FILES.get("csv_file")
+            if not up:
+                raise ValueError("Nahrajte prosím CSV soubor.")
+
+            # jednoduchá validace typu/názvu
+            filename = (up.name or "").lower()
+            if not filename.endswith(".csv"):
+                raise ValueError("Soubor musí být ve formátu .csv")
+
+            # pojistka velikosti (klidně uprav)
+            max_mb = 5
+            if up.size and up.size > max_mb * 1024 * 1024:
+                raise ValueError(f"Soubor je příliš velký (max {max_mb} MB).")
+
+            # --- konverze ---
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Data"
+
+            # TextIOWrapper: přečteme upload jako text
+            # encoding: utf-8-sig zvládne i BOM z Excelu
+            wrapper = TextIOWrapper(up.file, encoding="utf-8-sig", newline="")
+
+            # delimiter: buď zkusíme sniff, nebo fallback na ;
+            sample = wrapper.read(4096)
+            wrapper.seek(0)
+
+            try:
+                dialect = csv.Sniffer().sniff(sample, delimiters=[",", ";", "\t", "|"])
+            except Exception:
+                dialect = csv.excel
+                dialect.delimiter = ";"
+
+            reader = csv.reader(wrapper, dialect=dialect)
+
+            for row in reader:
+                # row je list stringů; openpyxl to vezme
+                ws.append(row)
+
+            # --- uložení ---
+            ts = timezone.now().strftime("%Y%m%d%H%M%S%f")
+            out_name = f"csv_to_xlsx_{ts}.xlsx"
+
+            save_dir = os.path.join(settings.MEDIA_ROOT, "csv_to_xlsx")
+            os.makedirs(save_dir, exist_ok=True)
+
+            full_path = os.path.join(save_dir, out_name)
+            wb.save(full_path)
+
+            ctx["result_url"] = f"{settings.MEDIA_URL}csv_to_xlsx/{out_name}"
+            ctx["result_filename"] = out_name
+
+            # cleanup (necháme posledních 5)
+            try:
+                files = sorted(
+                    [os.path.join(save_dir, f) for f in os.listdir(save_dir) if f.lower().endswith(".xlsx")],
+                    key=os.path.getmtime
+                )
+                if len(files) > 5:
+                    for old_file in files[:-5]:
+                        os.remove(old_file)
+            except Exception:
+                pass
+
+        except Exception as e:
+            ctx["error_message"] = str(e)
 
     return render(request, template, ctx)

@@ -7,7 +7,7 @@
 
 {% block content %}
 <h1 class="nadpis">Různé užitečné vychytávky v Pythonu</h1>
-<p>Tady bych si jenom chtěl zkoušet různé užitečné mini-programy v Pythonu. Zatím mám generování QR kódu, Donut grafu, klasického koláčového grafu (tam jsem přidal i nějaké admin funkce dostupné jen někomu), Skupinový graf, Generátor hesel a odstranění pozadí na fotce (tam je ale omezení na 50 fotek za měsíc, protože využívám externí službu, protože nechci platit za místo na disku)</p>
+<p>Tady bych si jenom chtěl zkoušet různé užitečné mini-aplikace v Pythonu. Zatím mám generování QR kódu, Donut grafu, Koláčového grafu (tam jsem přidal i&nbsp;nějaké admin funkce dostupné jen někomu), Skupinového grafu, Generátor hesel, Odstranění pozadí na fotce (tam je ale omezení na 50 fotek za měsíc - využívám totiž externí službu, protože nechci platit za místo na disku, takže jestli vám to nejde, musíte počkat.) a jako poslední jsem přidal ještě jednoduchou konverzi soubor s&nbsp;příponou .csv na klasický Excel s&nbsp;příponou .xlsx.</p>
 
 <div class="tiles-wrapper">
 
@@ -51,6 +51,12 @@
         <div class="tile-glow"></div>
         <img src="{% static 'pojistenci/img/password_generator_icon.png' %}">
         <span>Generátor hesel</span>
+    </a>
+
+    <a href="{% url 'csv-to-xlsx' %}" class="tile">
+        <div class="tile-glow"></div>
+        <img src="{% static 'pojistenci/img/csv_to_xlsx.png' %}">
+        <span>Konverze csv do xlsx</span>
     </a>
 
 </div>
