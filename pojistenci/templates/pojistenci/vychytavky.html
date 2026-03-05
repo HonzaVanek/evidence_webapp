@@ -59,6 +59,14 @@
         <span>Konverze csv do xlsx</span>
     </a>
 
+    {% if request.user.is_staff %}
+    <a href="{% url 'rozesilac_dashboard' %}" class="tile">
+        <div class="tile-glow"></div>
+        <img src="{% static 'pojistenci/img/rozesilac.png' %}">
+        <span>Rozesílač Emailů</span>
+    </a>
+    {% endif %}
+
 </div>
 
 <script>

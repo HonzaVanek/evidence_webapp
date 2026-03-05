@@ -1,8 +1,8 @@
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Pojistenec, Pojisteni, TypPojisteni
-from .forms import PojistenecForm, PojisteniForm, TypPojisteniForm, BulkUploadForm, RegistraceForm
-from django.http import HttpResponseRedirect
+from .models import Pojistenec, Pojisteni, TypPojisteni, Contact
+from .forms import PojistenecForm, PojisteniForm, TypPojisteniForm, BulkUploadForm, RegistraceForm, ContactForm, ContactImportForm
+from django.http import HttpResponseRedirect, HttpResponse
 from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
@@ -21,10 +21,10 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from openpyxl import load_workbook, Workbook
 import requests
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db.models import Q
-from django.http import HttpResponse
 from django import forms
+from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from rest_framework import viewsets
 from .serializers import PojistenecSerializer
@@ -1022,3 +1022,129 @@ def convert_csv_to_xlsx(request):
             ctx["error_message"] = str(e)
 
     return render(request, template, ctx)
+
+
+# tady budou funkce spojené s rozesílačem emailů:
+
+@staff_member_required
+def rozesilac_dashboard(request):
+    cards = [
+        {"title": "Šablony", "desc": "Vytvořit a upravit HTML šablony emailů.", "url": "rozesilac_templates"},
+        {"title": "Kontakty", "desc": "Správa kontaktů + import z XLSX.", "url": "rozesilac_contacts"},
+        {"title": "Odeslat", "desc": "Vybrat šablonu, příjemce a odeslat.", "url": "rozesilac_send"},
+        {"title": "Kampaně", "desc": "Historie rozesílek, výsledky a chyby.", "url": "rozesilac_campaigns"},
+    ]
+    return render(request, "pojistenci/rozesilac/dashboard.html", {"cards": cards})
+
+
+@staff_member_required
+def rozesilac_templates(request):
+    return render(request, "pojistenci/rozesilac/templates_list.html")
+
+
+@staff_member_required
+def rozesilac_contacts(request):
+    # mazání přes POST (bez JS)
+    if request.method == "POST" and request.POST.get("action") == "delete":
+        contact_id = request.POST.get("contact_id")
+        Contact.objects.filter(id=contact_id).delete()
+        messages.success(request, "Kontakt smazán.")
+        return redirect("rozesilac_contacts")
+
+    add_form = ContactForm()
+    import_form = ContactImportForm()
+
+    # přidání jednoho kontaktu
+    if request.method == "POST" and request.POST.get("action") == "add":
+        add_form = ContactForm(request.POST)
+        if add_form.is_valid():
+            try:
+                add_form.save()
+                messages.success(request, "Kontakt uložen.")
+                return redirect("rozesilac_contacts")
+            except IntegrityError:
+                add_form.add_error("email", "Tento email už v kontaktech existuje.")
+
+    # import XLSX
+    if request.method == "POST" and request.POST.get("action") == "import":
+        import_form = ContactImportForm(request.POST, request.FILES)
+        if import_form.is_valid():
+            f = import_form.cleaned_data["file"]
+
+            wb = load_workbook(filename=f, data_only=True)
+            ws = wb.active
+
+            # očekáváme hlavičku: jméno | email
+            header_row = [str(c.value).strip().lower() if c.value is not None else "" for c in ws[1]]
+
+            def find_col(possible_names):
+                for i, h in enumerate(header_row):
+                    if h in possible_names:
+                        return i
+                return None
+
+            name_col = find_col({"jméno", "jmeno", "name"})
+            email_col = find_col({"email", "e-mail", "e mail", "mail"})
+
+            if email_col is None:
+                messages.error(request, "V XLSX souboru chybí sloupec 'email'.")
+                return redirect("rozesilac_contacts")
+
+            created = 0
+            skipped = 0
+            invalid = 0
+
+            # od 2. řádku dál jsou data
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                raw_email = row[email_col] if email_col < len(row) else None
+                raw_name = row[name_col] if (name_col is not None and name_col < len(row)) else None
+
+                email = (str(raw_email).strip() if raw_email is not None else "").lower()
+                name = str(raw_name).strip() if raw_name is not None else ""
+
+                if not email:
+                    continue
+
+                try:
+                    validate_email(email)
+                except ValidationError:
+                    invalid += 1
+                    continue
+
+                # unique email -> pokud existuje, přeskoč
+                obj, was_created = Contact.objects.get_or_create(
+                    email=email,
+                    defaults={"name": name, "is_active": True},
+                )
+                if was_created:
+                    created += 1
+                else:
+                    skipped += 1
+
+            messages.success(
+                request,
+                f"Import hotový. Přidáno: {created}, přeskočeno (duplicitní): {skipped}, neplatné emaily: {invalid}."
+            )
+            return redirect("rozesilac_contacts")
+
+    contacts = Contact.objects.order_by("email")
+
+    return render(
+        request,
+        "pojistenci/rozesilac/contacts_list.html",
+        {
+            "contacts": contacts,
+            "add_form": add_form,
+            "import_form": import_form,
+        },
+    )
+
+
+@staff_member_required
+def rozesilac_send(request):
+    return render(request, "pojistenci/rozesilac/send.html")
+
+
+@staff_member_required
+def rozesilac_campaigns(request):
+    return render(request, "pojistenci/rozesilac/campaigns_list.html")

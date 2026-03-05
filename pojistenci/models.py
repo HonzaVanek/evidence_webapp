@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import FileExtensionValidator
 from django.core.exceptions import ValidationError
+from django.conf import settings
 
 def validate_image_size(image):
     max_size_mb = 3
@@ -35,3 +36,72 @@ class Pojisteni(models.Model):
     castka = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Částka')
     platnost_od = models.DateField(verbose_name='Platnost od')
     platnost_do = models.DateField(verbose_name='Platnost do')
+
+
+
+# rozesílač (newsletter):
+
+class Contact(models.Model):
+    """Jednoduchý seznam příjemců"""
+    email = models.EmailField(unique=True)
+    name = models.CharField(max_length=200, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self) -> str:
+        return f"{self.name} <{self.email}>" if self.name else self.email
+
+
+class EmailTemplate(models.Model):
+    name = models.CharField(max_length=200)
+    subject = models.CharField(max_length=250)
+    html_body = models.TextField()
+    text_body = models.TextField(blank=True, help_text="Volitelné: plain-text fallback.")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class EmailCampaign(models.Model):
+    """Jedno konkrétní rozeslání (test i ostré)."""
+    template = models.ForeignKey(EmailTemplate, on_delete=models.PROTECT)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="email_campaigns")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # co se poslalo (snapshot – ať to nezmění pozdější editace šablony)
+    subject = models.CharField(max_length=250)
+    html_body = models.TextField()
+    text_body = models.TextField(blank=True)
+
+    is_test = models.BooleanField(default=False)
+    note = models.CharField(max_length=250, blank=True)
+
+    def __str__(self) -> str:
+        return f"{'TEST ' if self.is_test else ''}{self.subject} ({self.created_at:%Y-%m-%d %H:%M})"
+
+
+class EmailDelivery(models.Model):
+    STATUS_CHOICES = [
+        ("queued", "Queued"),
+        ("sent", "Sent"),
+        ("failed", "Failed"),
+    ]
+    campaign = models.ForeignKey(EmailCampaign, on_delete=models.CASCADE, related_name="deliveries")
+    to_email = models.EmailField()
+    to_name = models.CharField(max_length=200, blank=True)
+
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="queued")
+    error = models.TextField(blank=True)
+
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["campaign", "status"]),
+            models.Index(fields=["to_email"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.to_email} - {self.status}"

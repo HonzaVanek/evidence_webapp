@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Rozesílač{% endblock title %}
+
+{% block style %}{% static "pojistenci/rozesilac.css" %}{% endblock style %}
+
+{% block content %}
+<div class="rozesilac-wrap">
+  <aside class="rozesilac-sidebar">
+    <h2 class="rozesilac-title">Rozesílač - MENU</h2>
+
+    <nav class="rozesilac-nav">
+      <a href="{% url 'rozesilac_dashboard' %}">Dashboard</a>
+      <a href="{% url 'rozesilac_templates' %}">Šablony</a>
+      <a href="{% url 'rozesilac_contacts' %}">Kontakty</a>
+      <a href="{% url 'rozesilac_send' %}">Odeslat</a>
+      <a href="{% url 'rozesilac_campaigns' %}">Kampaně</a>
+    </nav>
+  </aside>
+
+  <main class="rozesilac-main">
+    {% block rozesilac_content %}{% endblock rozesilac_content %}
+  </main>
+</div>
+{% endblock content %}

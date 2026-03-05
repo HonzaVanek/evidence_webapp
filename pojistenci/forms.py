@@ -1,9 +1,10 @@
 from django import forms
-from .models import Pojistenec, Pojisteni, TypPojisteni
+from .models import Pojistenec, Pojisteni, TypPojisteni, Contact
 from django.forms import DateInput, NumberInput
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
-from django.core.validators import FileExtensionValidator
+from django.core.validators import FileExtensionValidator, validate_email
+from django.core.exceptions import ValidationError
 
 class PojistenecForm(forms.ModelForm):
     class Meta:
@@ -89,3 +90,26 @@ class BulkUploadForm(forms.Form):
         help_text="Sloupce: Jméno, Příjmení, Ulice, Město, PSČ, Telefon, Email",
         validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls'])],
     )
+
+# rozesílač (importování kontaktů):
+
+class ContactForm(forms.ModelForm):
+    class Meta:
+        model = Contact
+        fields = ["name", "email", "is_active"]
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "Jméno (volitelné)"}),
+            "email": forms.EmailInput(attrs={"placeholder": "email@domena.cz"}),
+        }
+
+
+class ContactImportForm(forms.Form):
+    file = forms.FileField(help_text="XLSX se sloupci: jméno, email")
+
+    def clean_file(self):
+        f = self.cleaned_data["file"]
+        name = (f.name or "").lower()
+        if not name.endswith(".xlsx"):
+            raise ValidationError("Tohle nevypadá jako xlsx soubor. Nahraj prosím soubor s příponou .xlsx, který má dva sloupce se záhlavím jméno a email")
+        return f
+    

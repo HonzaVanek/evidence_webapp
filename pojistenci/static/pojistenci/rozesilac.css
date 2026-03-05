@@ -1,0 +1,124 @@
+.rozesilac-wrap{
+  width: 90%;
+  max-width: 1200px;
+  margin: 20px auto;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 18px;
+}
+
+.rozesilac-sidebar{
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fff;
+}
+
+.rozesilac-title{
+  margin: 0;
+}
+
+.rozesilac-subtitle{
+  margin: 6px 0 14px 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.rozesilac-nav a{
+  display: block;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.rozesilac-nav a:hover{
+  background: #f2f2f2;
+}
+
+.rozesilac-main{
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 18px;
+  background: #fff;
+}
+
+@media (max-width: 900px){
+  .rozesilac-wrap{
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+/* Tady začíná CSS jen pro stránku s kontakty */
+
+/* =========================
+   ROZESÍLAČ – obecné
+   ========================= */
+
+.muted{
+  color:#666;
+}
+
+/* =========================
+   FORMULÁŘE
+   ========================= */
+
+.form-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr 160px;
+  gap:10px;
+  align-items:end;
+}
+
+.form-errors{
+  color:#b00;
+  font-size:0.9rem;
+  margin-top:4px;
+}
+
+.form-actions{
+  margin-top:10px;
+}
+
+/* =========================
+   MESSAGES
+   ========================= */
+
+.messages{
+  padding-left:18px;
+}
+
+.messages li{
+  margin:6px 0;
+}
+
+.messages li.error{
+  color:#b00;
+}
+
+/* =========================
+   TABULKY
+   ========================= */
+
+.table{
+  border-collapse:collapse;
+  width:100%;
+}
+
+.table th{
+  text-align:left;
+  border-bottom:1px solid #ddd;
+  padding:8px;
+}
+
+.table td{
+  border-bottom:1px solid #eee;
+  padding:8px;
+}
+
+.table td.actions{
+  text-align:right;
+}
+

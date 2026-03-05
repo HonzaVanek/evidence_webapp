@@ -1,0 +1,131 @@
+{% extends "pojistenci/rozesilac/base_rozesilac.html" %}
+
+{% block title %}Rozesílač | Kontakty{% endblock title %}
+
+{% block rozesilac_content %}
+<h2>Kontakty</h2>
+
+{% if messages %}
+<ul class="messages">
+  {% for m in messages %}
+    <li class="{{ m.tags }}">{{ m }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<h3>Přidat kontakt</h3>
+
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="add">
+
+  <div class="form-grid">
+
+    <div>
+      <label>Jméno</label>
+      {{ add_form.name }}
+      {% for e in add_form.name.errors %}
+        <div class="form-errors">{{ e }}</div>
+      {% endfor %}
+    </div>
+
+    <div>
+      <label>Email</label>
+      {{ add_form.email }}
+      {% for e in add_form.email.errors %}
+        <div class="form-errors">{{ e }}</div>
+      {% endfor %}
+    </div>
+
+    <div>
+      <label>Aktivní</label>
+      {{ add_form.is_active }}
+    </div>
+
+  </div>
+
+  <div class="form-actions">
+    <button type="submit">Uložit</button>
+  </div>
+
+</form>
+
+
+<h3>Import z XLSX</h3>
+
+<p class="muted">
+Soubor musí mít první řádek hlavičky:
+<strong>jméno</strong> a <strong>email</strong>.
+</p>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="import">
+
+  {{ import_form.file }}
+
+  {% for e in import_form.file.errors %}
+    <div class="form-errors">{{ e }}</div>
+  {% endfor %}
+
+  <button type="submit">Importovat</button>
+</form>
+
+
+<h3>Seznam</h3>
+
+{% if contacts %}
+
+<table class="table">
+
+<thead>
+<tr>
+  <th>Jméno</th>
+  <th>Email</th>
+  <th>Aktivní</th>
+  <th></th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for c in contacts %}
+<tr>
+
+  <td>{{ c.name }}</td>
+
+  <td>{{ c.email }}</td>
+
+  <td>
+    {% if c.is_active %}
+      Ano
+    {% else %}
+      Ne
+    {% endif %}
+  </td>
+
+  <td class="actions">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="contact_id" value="{{ c.id }}">
+      <button type="submit"
+              onclick="return confirm('Opravdu smazat kontakt {{ c.email }}?');">
+        Smazat
+      </button>
+    </form>
+  </td>
+
+</tr>
+{% endfor %}
+
+</tbody>
+</table>
+
+{% else %}
+
+<p class="muted">Zatím žádné kontakty.</p>
+
+{% endif %}
+
+{% endblock rozesilac_content %}
