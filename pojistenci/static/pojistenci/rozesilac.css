@@ -122,3 +122,51 @@
   text-align:right;
 }
 
+
+
+.template-form-row{
+  margin-bottom: 18px;
+}
+
+.template-form-row label{
+  display:block;
+  font-weight:600;
+  margin-bottom:6px;
+}
+
+.template-form-row input[type="text"],
+.template-form-row textarea{
+  width:100%;
+  box-sizing:border-box;
+  padding:10px;
+}
+
+
+/* posílání kampaní */
+
+.contacts-box {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.contacts-box ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.contacts-box li {
+  margin-bottom: 8px;
+}
+
+#id_template,
+#id_test_email,
+#id_note {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+}

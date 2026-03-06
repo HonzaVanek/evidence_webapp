@@ -3,8 +3,60 @@
 {% block title %}Rozesílač | Kampaně{% endblock title %}
 
 {% block rozesilac_content %}
-  <h2>Kampaně</h2>
-  <p class="muted">Zde by se měly ukazovat proběhlé kampaně. Historie rozesílek, výsledky a chyby. Časem můžeme rozšířit o nějaké statistiky, ale to zatím neřešme.</p>
+<h2>Kampaně</h2>
 
+{% if messages %}
+<ul class="messages">
+  {% for m in messages %}
+    <li class="{{ m.tags }}">{{ m }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
 
+{% if campaign_rows %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Předmět</th>
+        <th>Šablona</th>
+        <th>Režim</th>
+        <th>Vytvořil</th>
+        <th>Vytvořeno</th>
+        <th>Celkem</th>
+        <th>Odesláno</th>
+        <th>Chyby</th>
+        <th>Ve frontě</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in campaign_rows %}
+        <tr>
+          <td>{{ row.campaign.id }}</td>
+          <td>{{ row.campaign.subject }}</td>
+          <td>{{ row.campaign.template.name }}</td>
+          <td>
+            {% if row.campaign.is_test %}
+              Test
+            {% else %}
+              Ostrá
+            {% endif %}
+          </td>
+          <td>{{ row.campaign.created_by.username }}</td>
+          <td>{{ row.campaign.created_at|date:"d.m.Y H:i" }}</td>
+          <td>{{ row.total_count }}</td>
+          <td>{{ row.sent_count }}</td>
+          <td>{{ row.failed_count }}</td>
+          <td>{{ row.queued_count }}</td>
+          <td class="actions">
+            <a href="{% url 'rozesilac_campaign_detail' row.campaign.id %}">Detail</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="muted">Zatím nebyla vytvořena žádná kampaň.</p>
+{% endif %}
 {% endblock rozesilac_content %}

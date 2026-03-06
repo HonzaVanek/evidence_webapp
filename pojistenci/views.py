@@ -1,7 +1,7 @@
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Pojistenec, Pojisteni, TypPojisteni, Contact
-from .forms import PojistenecForm, PojisteniForm, TypPojisteniForm, BulkUploadForm, RegistraceForm, ContactForm, ContactImportForm
+from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate, EmailCampaign, EmailDelivery
+from .forms import PojistenecForm, PojisteniForm, TypPojisteniForm, BulkUploadForm, RegistraceForm, ContactForm, ContactImportForm, EmailTemplateForm, SendCampaignForm
 from django.http import HttpResponseRedirect, HttpResponse
 from django.contrib import messages
 from django.urls import reverse
@@ -16,7 +16,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.views import LoginView
 from .forms import VlastniLoginForm, RegistraceForm
-from django.core.mail import send_mail, EmailMessage
+from django.core.mail import send_mail, EmailMessage, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from openpyxl import load_workbook, Workbook
@@ -1039,8 +1039,70 @@ def rozesilac_dashboard(request):
 
 @staff_member_required
 def rozesilac_templates(request):
-    return render(request, "pojistenci/rozesilac/templates_list.html")
+    templates = EmailTemplate.objects.order_by("-updated_at", "name")
+    return render(request, "pojistenci/rozesilac/templates_list.html", {"templates": templates})
 
+
+@staff_member_required
+def rozesilac_template_create(request):
+    if request.method == "POST":
+        form = EmailTemplateForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Šablona byla vytvořena.")
+            return redirect("rozesilac_templates")
+    else:
+        form = EmailTemplateForm()
+
+    return render(
+        request,
+        "pojistenci/rozesilac/template_form.html",
+        {
+            "form": form,
+            "page_title": "Nová šablona",
+            "submit_label": "Vytvořit šablonu",
+        },
+    )
+
+@staff_member_required
+def rozesilac_template_edit(request, template_id):
+    template_obj = get_object_or_404(EmailTemplate, id=template_id)
+
+    if request.method == "POST":
+        form = EmailTemplateForm(request.POST, instance=template_obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Šablona byla upravena.")
+            return redirect("rozesilac_templates")
+    else:
+        form = EmailTemplateForm(instance=template_obj)
+
+    return render(
+        request,
+        "pojistenci/rozesilac/template_form.html",
+        {
+            "form": form,
+            "page_title": f"Upravit šablonu: {template_obj.name}",
+            "submit_label": "Uložit změny",
+            "template_obj": template_obj,
+        },
+    )
+
+
+@staff_member_required
+def rozesilac_template_delete(request, template_id):
+    template_obj = get_object_or_404(EmailTemplate, id=template_id)
+
+    if request.method == "POST":
+        template_obj.delete()
+        messages.success(request, "Šablona byla smazána.")
+        return redirect("rozesilac_templates")
+
+    return render(
+        request,
+        "pojistenci/rozesilac/template_delete.html",
+        {"template_obj": template_obj},
+    )
 
 @staff_member_required
 def rozesilac_contacts(request):
@@ -1142,9 +1204,144 @@ def rozesilac_contacts(request):
 
 @staff_member_required
 def rozesilac_send(request):
-    return render(request, "pojistenci/rozesilac/send.html")
+    if request.method == "POST":
+        form = SendCampaignForm(request.POST)
+
+        if form.is_valid():
+            template = form.cleaned_data["template"]
+            send_mode = form.cleaned_data["send_mode"]
+            test_email = form.cleaned_data.get("test_email")
+            contacts = form.cleaned_data.get("contacts")
+            note = form.cleaned_data.get("note", "")
+
+            is_test = send_mode == "test"
+
+            campaign = EmailCampaign.objects.create(
+                template=template,
+                created_by=request.user,
+                subject=template.subject,
+                html_body=template.html_body,
+                text_body=template.text_body,
+                is_test=is_test,
+                note=note,
+            )
+
+            recipients = []
+
+            if is_test:
+                recipients.append({
+                    "email": test_email,
+                    "name": "",
+                })
+            else:
+                for contact in contacts:
+                    recipients.append({
+                        "email": contact.email,
+                        "name": contact.name,
+                    })
+
+            sent_count = 0
+            failed_count = 0
+
+            for recipient in recipients:
+                delivery = EmailDelivery.objects.create(
+                    campaign=campaign,
+                    to_email=recipient["email"],
+                    to_name=recipient["name"],
+                    status="queued",
+                )
+
+                try:
+                    text_body = campaign.text_body.strip() if campaign.text_body else ""
+                    if not text_body:
+                        text_body = "Tento email obsahuje HTML verzi zprávy."
+
+                    msg = EmailMultiAlternatives(
+                        subject=campaign.subject,
+                        body=text_body,
+                        to=[recipient["email"]],
+                    )
+                    msg.attach_alternative(campaign.html_body, "text/html")
+                    msg.send(fail_silently=False)
+
+                    delivery.status = "sent"
+                    delivery.sent_at = timezone.now()
+                    delivery.error = ""
+                    delivery.save(update_fields=["status", "sent_at", "error"])
+
+                    sent_count += 1
+
+                except Exception as exc:
+                    delivery.status = "failed"
+                    delivery.error = str(exc)
+                    delivery.save(update_fields=["status", "error"])
+
+                    failed_count += 1
+
+            if failed_count == 0:
+                messages.success(request, f"Odeslání dokončeno. Úspěšně odesláno: {sent_count}.")
+            else:
+                messages.warning(
+                    request,
+                    f"Odeslání dokončeno s chybami. Odesláno: {sent_count}, chyb: {failed_count}."
+                )
+
+            return redirect("rozesilac_campaign_detail", campaign_id=campaign.id)
+
+    else:
+        form = SendCampaignForm()
+
+    return render(request, "pojistenci/rozesilac/send.html", {"form": form},)
 
 
 @staff_member_required
+def rozesilac_campaign_detail(request, campaign_id):
+    campaign = get_object_or_404(EmailCampaign, id=campaign_id)
+    deliveries = campaign.deliveries.all().order_by("created_at")
+
+    sent_count = deliveries.filter(status="sent").count()
+    failed_count = deliveries.filter(status="failed").count()
+    queued_count = deliveries.filter(status="queued").count()
+
+    return render(
+        request,
+        "pojistenci/rozesilac/campaign_detail.html",
+        {
+            "campaign": campaign,
+            "deliveries": deliveries,
+            "sent_count": sent_count,
+            "failed_count": failed_count,
+            "queued_count": queued_count,
+        },
+    )
+
+@staff_member_required
 def rozesilac_campaigns(request):
-    return render(request, "pojistenci/rozesilac/campaigns_list.html")
+    campaigns = (
+        EmailCampaign.objects
+        .select_related("created_by", "template")
+        .prefetch_related("deliveries")
+        .order_by("-created_at")
+    )
+
+    campaign_rows = []
+    for campaign in campaigns:
+        deliveries = campaign.deliveries.all()
+        total_count = deliveries.count()
+        sent_count = deliveries.filter(status="sent").count()
+        failed_count = deliveries.filter(status="failed").count()
+        queued_count = deliveries.filter(status="queued").count()
+
+        campaign_rows.append({
+            "campaign": campaign,
+            "total_count": total_count,
+            "sent_count": sent_count,
+            "failed_count": failed_count,
+            "queued_count": queued_count,
+        })
+
+    return render(
+        request,
+        "pojistenci/rozesilac/campaigns_list.html",
+        {"campaign_rows": campaign_rows},
+    )

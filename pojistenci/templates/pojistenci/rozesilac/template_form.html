@@ -1,0 +1,88 @@
+{% extends "pojistenci/rozesilac/base_rozesilac.html" %}
+{% load static %}
+
+{% block title %}Rozesílač | {{ page_title }}{% endblock title %}
+
+{% block rozesilac_content %}
+<h2>{{ page_title }}</h2>
+
+{% if form.errors %}
+  <div class="form-errors" style="margin-bottom: 15px;">
+    Oprav prosím chyby ve formuláři.
+  </div>
+{% endif %}
+
+<form method="post" onsubmit="if (window.tinymce) { tinymce.triggerSave(); }" novalidate>
+  {% csrf_token %}
+
+  <div class="template-form-row">
+    <label for="{{ form.name.id_for_label }}">Název šablony</label>
+    {{ form.name }}
+    {% for e in form.name.errors %}
+      <div class="form-errors">{{ e }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="template-form-row">
+    <label for="{{ form.subject.id_for_label }}">Předmět emailu</label>
+    {{ form.subject }}
+    {% for e in form.subject.errors %}
+      <div class="form-errors">{{ e }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="template-form-row">
+    <label for="{{ form.html_body.id_for_label }}">HTML tělo emailu</label>
+    {{ form.html_body }}
+    {% for e in form.html_body.errors %}
+      <div class="form-errors">{{ e }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="template-form-row">
+    <label for="{{ form.text_body.id_for_label }}">Textová verze (volitelné)</label>
+    {{ form.text_body }}
+    <p class="muted">
+      Když necháš prázdné, časem můžeme plain text generovat automaticky z HTML.
+    </p>
+    {% for e in form.text_body.errors %}
+      <div class="form-errors">{{ e }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="form-actions">
+    <button type="submit">{{ submit_label }}</button>
+    <a href="{% url 'rozesilac_templates' %}">Zpět na seznam</a>
+  </div>
+</form>
+
+<script src="https://cdn.tiny.cloud/1/ht1e06x69yx3opbtynakr5hfqn8bn0m36l3dxv75qqshj24t/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const textarea = document.getElementById("id_html_body");
+
+  if (textarea) {
+    textarea.removeAttribute("disabled");
+    textarea.removeAttribute("readonly");
+  }
+
+  tinymce.init({
+    selector: "#id_html_body",
+    height: 500,
+    menubar: true,
+    plugins: "lists link image table code autoresize preview",
+    toolbar: "undo redo | styles | bold italic underline | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist | link image table | preview code",
+    branding: false,
+    convert_urls: false,
+    promotion: false,
+    readonly: false,
+    setup: function (editor) {
+      editor.on("init", function () {
+        editor.mode.set("design");
+      });
+    },
+    content_style: "body { font-family: Arial, sans-serif; font-size: 14px; }"
+  });
+});
+</script>
+{% endblock rozesilac_content %}

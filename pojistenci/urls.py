@@ -40,7 +40,11 @@ urlpatterns = [
     path('pojistenci/vychytavky/csv-to-xlsx', views.convert_csv_to_xlsx, name='csv-to-xlsx'),
     path("pojistenci/vychytavky/rozesilac/", views.rozesilac_dashboard, name="rozesilac_dashboard"),
     path("pojistenci/vychytavky/rozesilac/sablony/", views.rozesilac_templates, name="rozesilac_templates"),
+    path("pojistenci/vychytavky/rozesilac/sablony/nova/", views.rozesilac_template_create, name="rozesilac_template_create"),
+    path("pojistenci/vychytavky/rozesilac/sablony/<int:template_id>/upravit/", views.rozesilac_template_edit, name="rozesilac_template_edit"),
+    path("pojistenci/vychytavky/rozesilac/sablony/<int:template_id>/smazat/", views.rozesilac_template_delete, name="rozesilac_template_delete"),
     path("pojistenci/vychytavky/rozesilac/kontakty/", views.rozesilac_contacts, name="rozesilac_contacts"),
     path("pojistenci/vychytavky/rozesilac/odeslat/", views.rozesilac_send, name="rozesilac_send"),
+    path("pojistenci/vychytavky/rozesilac/kampane/<int:campaign_id>/", views.rozesilac_campaign_detail, name="rozesilac_campaign_detail"),
     path("pojistenci/vychytavky/rozesilac/kampane/", views.rozesilac_campaigns, name="rozesilac_campaigns")
 ]

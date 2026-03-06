@@ -1,5 +1,5 @@
 from django import forms
-from .models import Pojistenec, Pojisteni, TypPojisteni, Contact
+from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate
 from django.forms import DateInput, NumberInput
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
@@ -113,3 +113,83 @@ class ContactImportForm(forms.Form):
             raise ValidationError("Tohle nevypadá jako xlsx soubor. Nahraj prosím soubor s příponou .xlsx, který má dva sloupce se záhlavím jméno a email")
         return f
     
+class EmailTemplateForm(forms.ModelForm):
+    class Meta:
+        model = EmailTemplate
+        fields = ["name", "subject", "html_body", "text_body"]
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "Např. Newsletter březen 2026"}),
+            "subject": forms.TextInput(attrs={"placeholder": "Předmět emailu"}),
+            "html_body": forms.Textarea(attrs={"rows": 18, "required": False}),
+            "text_body": forms.Textarea(attrs={"rows": 8}),
+        }
+
+    def clean_html_body(self):
+        html = self.cleaned_data.get("html_body", "").strip()
+
+        # TinyMCE někdy pošle "prázdné" HTML typu <p>&nbsp;</p>
+        normalized = (
+            html.replace("&nbsp;", "")
+                .replace("<p></p>", "")
+                .replace("<p><br></p>", "")
+                .replace("<p> </p>", "")
+                .strip()
+        )
+
+        if not normalized:
+            raise forms.ValidationError("HTML tělo emailu nesmí být prázdné.")
+
+        return html
+    
+# odesílání kampaní:
+class SendCampaignForm(forms.Form):
+    SEND_MODE_CHOICES = [("test", "Testovací email"), ("live", "Ostré rozeslání"),]
+
+    template = forms.ModelChoiceField(
+        queryset=EmailTemplate.objects.all().order_by("name"),
+        label="Šablona",
+        empty_label="-- vyber šablonu k rozeslání --",
+    )
+
+    send_mode = forms.ChoiceField(
+        choices=SEND_MODE_CHOICES,
+        widget=forms.RadioSelect,
+        initial="test",
+        label="Režim odeslání",
+    )
+
+    test_email = forms.EmailField(
+        required=False,
+        label="Testovací email",
+        widget=forms.EmailInput(attrs={"placeholder": "test@example.com"}),
+    )
+
+    contacts = forms.ModelMultipleChoiceField(
+        queryset=Contact.objects.filter(is_active=True).order_by("email"),
+        required=False,
+        label="Kontakty",
+        widget=forms.CheckboxSelectMultiple,
+    )
+
+    note = forms.CharField(
+        required=False,
+        label="Poznámka",
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Volitelná interní poznámka ke kampani"}),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        send_mode = cleaned_data.get("send_mode")
+        test_email = cleaned_data.get("test_email")
+        contacts = cleaned_data.get("contacts")
+
+        if send_mode == "test":
+            if not test_email:
+                self.add_error("test_email", "U testovacího režimu musíš vyplnit testovací email.")
+
+        elif send_mode == "live":
+            if not contacts or contacts.count() == 0:
+                self.add_error("contacts", "Pro ostré rozeslání musíš vybrat aspoň jeden kontakt.")
+
+        return cleaned_data

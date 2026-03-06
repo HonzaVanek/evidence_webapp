@@ -1,0 +1,68 @@
+{% extends "pojistenci/rozesilac/base_rozesilac.html" %}
+
+{% block title %}Rozesílač | Detail kampaně{% endblock title %}
+
+{% block rozesilac_content %}
+<h2>Detail kampaně</h2>
+
+<p>
+  <a href="{% url 'rozesilac_campaigns' %}">← Zpět na všechny kampaně</a>
+</p>
+
+{% if messages %}
+<ul class="messages">
+  {% for m in messages %}
+    <li class="{{ m.tags }}">{{ m }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<div class="template-form-row">
+  <p><strong>Předmět:</strong> {{ campaign.subject }}</p>
+  <p><strong>Režim:</strong> {% if campaign.is_test %}Testovací{% else %}Ostrý{% endif %}</p>
+  <p><strong>Vytvořil:</strong> {{ campaign.created_by }}</p>
+  <p><strong>Vytvořeno:</strong> {{ campaign.created_at|date:"d.m.Y H:i" }}</p>
+  <p><strong>Poznámka:</strong> {{ campaign.note|default:"-" }}</p>
+</div>
+
+<div class="template-form-row">
+  <p><strong>Odesláno:</strong> {{ sent_count }}</p>
+  <p><strong>Chyby:</strong> {{ failed_count }}</p>
+  <p><strong>Ve frontě:</strong> {{ queued_count }}</p>
+</div>
+
+<h3>Doručení</h3>
+
+{% if deliveries %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Jméno</th>
+        <th>Status</th>
+        <th>Odesláno</th>
+        <th>Chyba</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in deliveries %}
+        <tr>
+          <td>{{ d.to_email }}</td>
+          <td>{{ d.to_name }}</td>
+          <td>{{ d.status }}</td>
+          <td>
+            {% if d.sent_at %}
+              {{ d.sent_at|date:"d.m.Y H:i:s" }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>{{ d.error|default:"-" }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="muted">K této kampani zatím nejsou žádná doručení.</p>
+{% endif %}
+{% endblock rozesilac_content %}

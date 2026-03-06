@@ -3,8 +3,110 @@
 {% block title %}Rozesílač | Odesílání{% endblock title %}
 
 {% block rozesilac_content %}
-  <h2>Odeslat</h2>
-  <p class="muted">Zde by se posílaly emaily. Vybrala by se šablona, skupina příjemců a případně časem třeba nějaká další nastavení. Samozřejmě by zde bylo tlačítko odeslat, k tomu nějaký asi popup s potvrzením než se to fakt odešle.</p>
+<h2>Odeslat email</h2>
 
+{% if messages %}
+<ul class="messages">
+  {% for m in messages %}
+    <li class="{{ m.tags }}">{{ m }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
 
+{% if form.errors %}
+  <div class="form-errors" style="margin-bottom: 15px;">
+    Oprav prosím chyby ve formuláři.
+  </div>
+{% endif %}
+
+<form method="post" id="send-campaign-form">
+  {% csrf_token %}
+
+  <div class="template-form-row">
+    <label for="{{ form.template.id_for_label }}">Šablona</label>
+    {{ form.template }}
+    {% for e in form.template.errors %}
+      <div class="form-errors">{{ e }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="template-form-row">
+    <label>Režim odeslání</label>
+    {{ form.send_mode }}
+    {% for e in form.send_mode.errors %}
+      <div class="form-errors">{{ e }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="template-form-row" id="test-email-row">
+    <label for="{{ form.test_email.id_for_label }}">Testovací email</label>
+    {{ form.test_email }}
+    {% for e in form.test_email.errors %}
+      <div class="form-errors">{{ e }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="template-form-row" id="contacts-row">
+    <label>Kontakty</label>
+    <div class="contacts-box">
+      {{ form.contacts }}
+    </div>
+    {% for e in form.contacts.errors %}
+      <div class="form-errors">{{ e }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="template-form-row">
+    <label for="{{ form.note.id_for_label }}">Poznámka</label>
+    {{ form.note }}
+    {% for e in form.note.errors %}
+      <div class="form-errors">{{ e }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" id="send-submit-btn">Odeslat</button>
+  </div>
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const modeInputs = document.querySelectorAll('input[name="send_mode"]');
+  const testEmailRow = document.getElementById("test-email-row");
+  const contactsRow = document.getElementById("contacts-row");
+  const form = document.getElementById("send-campaign-form");
+
+  function updateModeVisibility() {
+    const selected = document.querySelector('input[name="send_mode"]:checked');
+    const mode = selected ? selected.value : "test";
+
+    if (mode === "test") {
+      testEmailRow.style.display = "block";
+      contactsRow.style.display = "none";
+    } else {
+      testEmailRow.style.display = "none";
+      contactsRow.style.display = "block";
+    }
+  }
+
+  modeInputs.forEach(function (input) {
+    input.addEventListener("change", updateModeVisibility);
+  });
+
+  updateModeVisibility();
+
+  form.addEventListener("submit", function (e) {
+    const selected = document.querySelector('input[name="send_mode"]:checked');
+    const mode = selected ? selected.value : "test";
+
+    if (mode === "live") {
+      const checkedContacts = document.querySelectorAll('#contacts-row input[type="checkbox"]:checked').length;
+      const confirmed = confirm(`Opravdu chceš odeslat ostrou kampaň na ${checkedContacts} kontakt(ů)?`);
+      if (!confirmed) {
+        e.preventDefault();
+      }
+    }
+  });
+});
+</script>
 {% endblock rozesilac_content %}

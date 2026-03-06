@@ -3,8 +3,46 @@
 {% block title %}Rozesílač | Šablony{% endblock title %}
 
 {% block rozesilac_content %}
-  <h2>Šablony</h2>
-  <p class="muted">Zatím placeholder. Další krok: list + vytvoření + editace (WYSIWYG). Vytvořit a upravit HTML šablony emailů.</p>
+<h2>Šablony</h2>
 
+{% if messages %}
+<ul class="messages">
+  {% for m in messages %}
+    <li class="{{ m.tags }}">{{ m }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
 
+<p>
+  <a href="{% url 'rozesilac_template_create' %}">+ Vytvořit novou šablonu</a>
+</p>
+
+{% if templates %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Název</th>
+        <th>Předmět</th>
+        <th>Upraveno</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in templates %}
+        <tr>
+          <td>{{ t.name }}</td>
+          <td>{{ t.subject }}</td>
+          <td>{{ t.updated_at|date:"d.m.Y H:i" }}</td>
+          <td class="actions">
+            <a href="{% url 'rozesilac_template_edit' t.id %}">Upravit</a>
+            |
+            <a href="{% url 'rozesilac_template_delete' t.id %}">Smazat</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="muted">Zatím nejsou vytvořené žádné šablony.</p>
+{% endif %}
 {% endblock rozesilac_content %}
