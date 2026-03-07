@@ -41,12 +41,13 @@
     </form>
 
     {% if recent_images %}
-      <h4>Posledních 5 obrázků</h4>
+      <h4>Poslední 4 nahrané obrázky</h4>
       <div class="recent-images-grid">
         {% for img in recent_images %}
           <div class="recent-image-card">
             <img src="{{ img.image.url }}" alt="{{ img.title }}" class="recent-image-thumb">
             <div class="muted small">{{ img.title|default:"Bez názvu" }}</div>
+            <div class="muted small">Velikost: {{ img.file_size|filesizeformat }}</div>
             <input type="text" readonly value="{{ request.scheme }}://{{ request.get_host }}{{ img.image.url }}" id="recent-img-url-{{ img.id }}">
             <button type="button" onclick="copyImageUrl('recent-img-url-{{ img.id }}')">Kopírovat URL</button>
           </div>

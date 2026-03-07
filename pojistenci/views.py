@@ -1054,7 +1054,7 @@ def rozesilac_template_create(request):
     else:
         form = EmailTemplateForm()
 
-    recent_images = EmailImage.objects.all()[:5]
+    recent_images = EmailImage.objects.all()[:4]
     total_size = EmailImage.objects.aggregate(total=Sum("file_size"))["total"] or 0
     limit_size = 100 * 1024 * 1024
     image_upload_form = EmailImageUploadForm()
@@ -1086,7 +1086,7 @@ def rozesilac_template_edit(request, template_id):
     else:
         form = EmailTemplateForm(instance=template_obj)
 
-    recent_images = EmailImage.objects.all()[:5]
+    recent_images = EmailImage.objects.all()[:4]
     total_size = EmailImage.objects.aggregate(total=Sum("file_size"))["total"] or 0
     limit_size = 100 * 1024 * 1024
     image_upload_form = EmailImageUploadForm()
