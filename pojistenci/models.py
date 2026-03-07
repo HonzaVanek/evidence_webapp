@@ -105,3 +105,38 @@ class EmailDelivery(models.Model):
 
     def __str__(self) -> str:
         return f"{self.to_email} - {self.status}"
+
+
+# model pro ukládání obrázků, které můžeme vkládat do rozesílače emailů (abychom nemuseli používat externí hosting a riskovat, že se nám obrázky ztratí):
+def validate_email_image_size(image):
+    max_size_mb = 2
+    if image.size > max_size_mb * 1024 * 1024:
+        raise ValidationError(f"Maximální povolená velikost obrázku je pouze {max_size_mb} MB.")
+
+class EmailImage(models.Model):
+    title = models.CharField(max_length=255, blank=True, verbose_name="Název")
+    image = models.ImageField(
+        upload_to="email_images/",
+        verbose_name="Obrázek",
+        validators=[
+            FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png", "webp", "gif"]),
+            validate_email_image_size,
+        ],
+    )
+    file_size = models.PositiveIntegerField(default=0, verbose_name="Velikost souboru (B)")
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Nahráno")
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Nahrál",
+    )
+
+    class Meta:
+        ordering = ["-uploaded_at"]
+        verbose_name = "Obrázek do emailu"
+        verbose_name_plural = "Obrázky do emailu"
+
+    def __str__(self):
+        return self.title or self.image.name
