@@ -6,6 +6,9 @@ from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator, validate_email
 from django.core.exceptions import ValidationError
 
+import re
+from bs4 import BeautifulSoup
+
 class PojistenecForm(forms.ModelForm):
     class Meta:
         model = Pojistenec
@@ -112,7 +115,35 @@ class ContactImportForm(forms.Form):
         if not name.endswith(".xlsx"):
             raise ValidationError("Tohle nevypadá jako xlsx soubor. Nahraj prosím soubor s příponou .xlsx, který má dva sloupce se záhlavím jméno a email")
         return f
-    
+
+
+#přepis html emailu do plaintextu:
+def html_to_plain_text(html: str) -> str:
+    if not html:
+        return ""
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    # zachovat základní zalomení
+    for br in soup.find_all("br"):
+        br.replace_with("\n")
+
+    for p in soup.find_all("p"):
+        p.append("\n\n")
+
+    for li in soup.find_all("li"):
+        li.insert_before("• ")
+        li.append("\n")
+
+    text = soup.get_text()
+
+    # úklid whitespace
+    text = text.replace("\xa0", " ")
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"[ \t]+", " ", text)
+
+    return text.strip()
+
 class EmailTemplateForm(forms.ModelForm):
     class Meta:
         model = EmailTemplate
@@ -140,6 +171,17 @@ class EmailTemplateForm(forms.ModelForm):
             raise forms.ValidationError("HTML tělo emailu nesmí být prázdné.")
 
         return html
+    
+    def clean(self):
+        cleaned_data = super().clean()
+
+        html_body = cleaned_data.get("html_body", "")
+        text_body = (cleaned_data.get("text_body") or "").strip()
+
+        if html_body and not text_body:
+            cleaned_data["text_body"] = html_to_plain_text(html_body)
+
+        return cleaned_data
     
 # odesílání kampaní:
 class SendCampaignForm(forms.Form):
@@ -193,3 +235,6 @@ class SendCampaignForm(forms.Form):
                 self.add_error("contacts", "Pro ostré rozeslání musíš vybrat aspoň jeden kontakt.")
 
         return cleaned_data
+    
+
+

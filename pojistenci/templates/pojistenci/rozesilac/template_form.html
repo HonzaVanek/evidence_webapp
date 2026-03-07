@@ -39,11 +39,13 @@
     {% endfor %}
   </div>
 
+  <button type="button" id="generate-text-btn">Přegenerovat text z HTML</button>
+
   <div class="template-form-row">
-    <label for="{{ form.text_body.id_for_label }}">Textová verze (volitelné)</label>
+    <label for="{{ form.text_body.id_for_label }}">Textová verze</label>
     {{ form.text_body }}
     <p class="muted">
-      Když necháš prázdné, časem můžeme plain text generovat automaticky z HTML.
+      Tady se to bude generovat automaticky z HTML editoru. Můžeš tady cokoli upravit, pak se to přestane generovat automaticky a zůstane to tak, jak jsi upravila. Pokud zmáčkneš tlačítko "Přegenerovat text z HTML", smažeš tu ruční úpravu a text se znovu vygeneruje z toho HTML editoru výše. Tadyto pole "Textová verze" musí být vyplněné proto, že se používá pro emailové klienty, které neumí (nebo uživatel nechce) zobrazit HTML, a taky pro zlepšení doručitelnosti emailů (aby nebyl vnímán jako spam).
     </p>
     {% for e in form.text_body.errors %}
       <div class="form-errors">{{ e }}</div>
@@ -57,13 +59,40 @@
 </form>
 
 <script src="https://cdn.tiny.cloud/1/ht1e06x69yx3opbtynakr5hfqn8bn0m36l3dxv75qqshj24t/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const textarea = document.getElementById("id_html_body");
 
-  if (textarea) {
-    textarea.removeAttribute("disabled");
-    textarea.removeAttribute("readonly");
+<script>
+function htmlToPlainTextInBrowser(html) {
+  const temp = document.createElement("div");
+  temp.innerHTML = html;
+
+  temp.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
+
+  temp.querySelectorAll("p").forEach(p => {
+    p.insertAdjacentText("beforeend", "\n\n");
+  });
+
+  temp.querySelectorAll("li").forEach(li => {
+    li.insertAdjacentText("afterbegin", "• ");
+    li.insertAdjacentText("beforeend", "\n");
+  });
+
+  let text = temp.textContent || temp.innerText || "";
+  text = text.replace(/\u00a0/g, " ");
+  text = text.replace(/\n{3,}/g, "\n\n");
+  text = text.replace(/[ \t]+/g, " ");
+  return text.trim();
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const textBodyField = document.getElementById("id_text_body");
+  const generateBtn = document.getElementById("generate-text-btn");
+
+  let textBodyTouchedManually = false;
+
+  if (textBodyField) {
+    textBodyField.addEventListener("input", function () {
+      textBodyTouchedManually = true;
+    });
   }
 
   tinymce.init({
@@ -75,14 +104,33 @@ document.addEventListener("DOMContentLoaded", function () {
     branding: false,
     convert_urls: false,
     promotion: false,
-    readonly: false,
+    content_style: "body { font-family: Arial, sans-serif; font-size: 14px; }",
     setup: function (editor) {
-      editor.on("init", function () {
-        editor.mode.set("design");
+      function syncTextBody(force = false) {
+        if (!textBodyField) return;
+
+        if (!force && textBodyTouchedManually) {
+          return;
+        }
+
+        const html = editor.getContent();
+        const generated = htmlToPlainTextInBrowser(html);
+        textBodyField.value = generated;
+      }
+
+      editor.on("init change keyup SetContent", function () {
+        syncTextBody(false);
       });
-    },
-    content_style: "body { font-family: Arial, sans-serif; font-size: 14px; }"
+
+      if (generateBtn) {
+        generateBtn.addEventListener("click", function () {
+          syncTextBody(true);
+          textBodyTouchedManually = false;
+        });
+      }
+    }
   });
 });
 </script>
+
 {% endblock rozesilac_content %}
