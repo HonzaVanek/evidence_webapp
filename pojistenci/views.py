@@ -1,8 +1,8 @@
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate, EmailCampaign, EmailDelivery
-from .forms import PojistenecForm, PojisteniForm, TypPojisteniForm, BulkUploadForm, RegistraceForm, ContactForm, ContactImportForm, EmailTemplateForm, SendCampaignForm
-from django.http import HttpResponseRedirect, HttpResponse
+from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate, EmailCampaign, EmailDelivery, EmailImage
+from .forms import PojistenecForm, PojisteniForm, TypPojisteniForm, BulkUploadForm, RegistraceForm, ContactForm, ContactImportForm, EmailTemplateForm, SendCampaignForm, EmailImageUploadForm
+from django.http import HttpResponseRedirect, HttpResponse, HttpResponseForbidden
 from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
@@ -22,7 +22,7 @@ from django.conf import settings
 from openpyxl import load_workbook, Workbook
 import requests
 from django.db import transaction, IntegrityError
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django import forms
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
@@ -1054,6 +1054,11 @@ def rozesilac_template_create(request):
     else:
         form = EmailTemplateForm()
 
+    recent_images = EmailImage.objects.all()[:5]
+    total_size = EmailImage.objects.aggregate(total=Sum("file_size"))["total"] or 0
+    limit_size = 100 * 1024 * 1024
+    image_upload_form = EmailImageUploadForm()
+
     return render(
         request,
         "pojistenci/rozesilac/template_form.html",
@@ -1061,6 +1066,10 @@ def rozesilac_template_create(request):
             "form": form,
             "page_title": "Nová šablona",
             "submit_label": "Vytvořit šablonu",
+            "recent_images": recent_images,
+            "total_size": total_size,
+            "limit_size": limit_size,
+            "image_upload_form": image_upload_form,
         },
     )
 
@@ -1077,6 +1086,11 @@ def rozesilac_template_edit(request, template_id):
     else:
         form = EmailTemplateForm(instance=template_obj)
 
+    recent_images = EmailImage.objects.all()[:5]
+    total_size = EmailImage.objects.aggregate(total=Sum("file_size"))["total"] or 0
+    limit_size = 100 * 1024 * 1024
+    image_upload_form = EmailImageUploadForm()
+
     return render(
         request,
         "pojistenci/rozesilac/template_form.html",
@@ -1085,6 +1099,10 @@ def rozesilac_template_edit(request, template_id):
             "page_title": f"Upravit šablonu: {template_obj.name}",
             "submit_label": "Uložit změny",
             "template_obj": template_obj,
+            "recent_images": recent_images,
+            "total_size": total_size,
+            "limit_size": limit_size,
+            "image_upload_form": image_upload_form,
         },
     )
 
@@ -1345,3 +1363,70 @@ def rozesilac_campaigns(request):
         "pojistenci/rozesilac/campaigns_list.html",
         {"campaign_rows": campaign_rows},
     )
+
+# rozesílač - nahrávání obrázků na server pro použití v šablonách:
+@staff_member_required
+def rozesilac_images(request):
+    if request.method == "POST":
+        if request.POST.get("action") == "upload":
+            upload_form = EmailImageUploadForm(request.POST, request.FILES)
+            if upload_form.is_valid():
+                obj = upload_form.save(commit=False)
+                obj.uploaded_by = request.user
+                obj.file_size = obj.image.size
+                obj.save()
+                messages.success(request, "Obrázek byl nahrán.")
+                return redirect("rozesilac_images")
+
+        elif request.POST.get("action") == "delete":
+            image_id = request.POST.get("image_id")
+            obj = get_object_or_404(EmailImage, id=image_id)
+
+            # smažeme soubor i DB záznam
+            if obj.image:
+                obj.image.delete(save=False)
+            obj.delete()
+
+            messages.success(request, "Obrázek byl smazán.")
+            return redirect("rozesilac_images")
+    else:
+        upload_form = EmailImageUploadForm()
+
+    if request.method != "POST" or request.POST.get("action") != "upload":
+        upload_form = EmailImageUploadForm()
+
+    images = EmailImage.objects.all()
+    total_size = EmailImage.objects.aggregate(total=Sum("file_size"))["total"] or 0
+    limit_size = 100 * 1024 * 1024
+
+    return render(
+        request,
+        "pojistenci/rozesilac/images_gallery.html",
+        {
+            "upload_form": upload_form,
+            "images": images,
+            "total_size": total_size,
+            "limit_size": limit_size,
+        },
+    )
+
+@staff_member_required
+def rozesilac_image_upload(request):
+    if request.method != "POST":
+        return HttpResponseForbidden("Pouze POST.")
+
+    form = EmailImageUploadForm(request.POST, request.FILES)
+    next_url = request.POST.get("next") or "rozesilac_templates"
+
+    if form.is_valid():
+        obj = form.save(commit=False)
+        obj.uploaded_by = request.user
+        obj.file_size = obj.image.size
+        obj.save()
+        messages.success(request, "Obrázek byl nahrán.")
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, error)
+
+    return redirect(next_url)

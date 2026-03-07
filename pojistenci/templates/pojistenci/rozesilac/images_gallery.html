@@ -1,0 +1,82 @@
+{% extends "pojistenci/rozesilac/base_rozesilac.html" %}
+
+{% block title %}Rozesílač | Obrázky{% endblock title %}
+
+{% block rozesilac_content %}
+<h2>Obrázky</h2>
+
+{% if messages %}
+<ul class="messages">
+  {% for m in messages %}
+    <li class="{{ m.tags }}">{{ m }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<p class="muted">
+  Využito: {{ total_size|filesizeformat }} z {{ limit_size|filesizeformat }}
+</p>
+
+<h3>Nahrát obrázek</h3>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="upload">
+
+  <div class="template-form-row">
+    <label for="{{ upload_form.title.id_for_label }}">Název</label>
+    {{ upload_form.title }}
+  </div>
+
+  <div class="template-form-row">
+    <label for="{{ upload_form.image.id_for_label }}">Soubor</label>
+    {{ upload_form.image }}
+  </div>
+
+  <div class="form-actions">
+    <button type="submit">Nahrát obrázek</button>
+  </div>
+</form>
+
+<h3>Galerie</h3>
+
+{% if images %}
+  <div class="image-grid">
+    {% for img in images %}
+      <div class="image-card">
+        <div class="image-thumb-wrap">
+          <img src="{{ img.image.url }}" alt="{{ img.title }}" class="image-thumb">
+        </div>
+
+        <div class="image-meta">
+          <strong>{{ img.title|default:"Bez názvu" }}</strong><br>
+          <span class="muted">{{ img.file_size|filesizeformat }} | {{ img.uploaded_at|date:"d.m.Y H:i" }}</span>
+        </div>
+
+        <div class="image-url-box">
+          <input type="text" readonly value="{{ request.scheme }}://{{ request.get_host }}{{ img.image.url }}" id="img-url-{{ img.id }}">
+          <button type="button" onclick="copyImageUrl('img-url-{{ img.id }}')">Kopírovat URL</button>
+        </div>
+
+        <form method="post" onsubmit="return confirm('Opravdu smazat tento obrázek?');">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="image_id" value="{{ img.id }}">
+          <button type="submit">Smazat</button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="muted">Zatím nejsou nahrané žádné obrázky.</p>
+{% endif %}
+
+<script>
+function copyImageUrl(inputId) {
+  const input = document.getElementById(inputId);
+  input.select();
+  input.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(input.value);
+}
+</script>
+{% endblock rozesilac_content %}

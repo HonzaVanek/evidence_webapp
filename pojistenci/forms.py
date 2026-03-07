@@ -1,10 +1,11 @@
 from django import forms
-from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate
+from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate, EmailImage
 from django.forms import DateInput, NumberInput
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator, validate_email
 from django.core.exceptions import ValidationError
+from django.db.models import Sum
 
 import re
 from bs4 import BeautifulSoup
@@ -238,3 +239,28 @@ class SendCampaignForm(forms.Form):
     
 
 
+# pro nahrávání obrázků na server v rozesílači emailů (aby šablony mohly používat obrázky, které jsou na našem serveru a ne někde jinde na internetu):
+class EmailImageUploadForm(forms.ModelForm):
+    class Meta:
+        model = EmailImage
+        fields = ["title", "image"]
+        widgets = {
+            "title": forms.TextInput(attrs={"placeholder": "Volitelný název obrázku"}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        image = cleaned_data.get("image")
+
+        if image:
+            current_total = EmailImage.objects.aggregate(total=Sum("file_size"))["total"] or 0
+
+            max_total = 100 * 1024 * 1024  # 100 MB
+
+            if current_total + image.size > max_total:
+                raise ValidationError(
+                    "Nelze nahrát další obrázek. Úložiště pro emailové obrázky překročilo limit 100 MB. "
+                    "Nejdříve je potřeba z galerie smazat alespoň pár nepotřebných obrázků."
+                )
+
+        return cleaned_data

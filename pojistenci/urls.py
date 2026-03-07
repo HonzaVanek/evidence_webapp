@@ -46,5 +46,7 @@ urlpatterns = [
     path("pojistenci/vychytavky/rozesilac/kontakty/", views.rozesilac_contacts, name="rozesilac_contacts"),
     path("pojistenci/vychytavky/rozesilac/odeslat/", views.rozesilac_send, name="rozesilac_send"),
     path("pojistenci/vychytavky/rozesilac/kampane/<int:campaign_id>/", views.rozesilac_campaign_detail, name="rozesilac_campaign_detail"),
-    path("pojistenci/vychytavky/rozesilac/kampane/", views.rozesilac_campaigns, name="rozesilac_campaigns")
+    path("pojistenci/vychytavky/rozesilac/kampane/", views.rozesilac_campaigns, name="rozesilac_campaigns"),
+    path("pojistenci/vychytavky/rozesilac/obrazky/", views.rozesilac_images, name="rozesilac_images"),
+    path("pojistenci/vychytavky/rozesilac/obrazky/upload/", views.rozesilac_image_upload, name="rozesilac_image_upload"),
 ]

@@ -12,6 +12,51 @@
   </div>
 {% endif %}
 
+  <div class="template-form-row image-panel">
+    <h3>Obrázky do emailu</h3>
+
+    <p class="muted">
+      Využito: {{ total_size|filesizeformat }} z {{ limit_size|filesizeformat }}
+      |
+      <a href="{% url 'rozesilac_images' %}">Otevřít galerii všech obrázků</a>
+    </p>
+
+    <form method="post" action="{% url 'rozesilac_image_upload' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+
+      <div class="image-upload-inline">
+        <div>
+          <label for="{{ image_upload_form.title.id_for_label }}">Název</label>
+          {{ image_upload_form.title }}
+        </div>
+        <div>
+          <label for="{{ image_upload_form.image.id_for_label }}">Soubor</label>
+          {{ image_upload_form.image }}
+        </div>
+        <div>
+          <button type="submit">Nahrát obrázek</button>
+        </div>
+      </div>
+    </form>
+
+    {% if recent_images %}
+      <h4>Posledních 5 obrázků</h4>
+      <div class="recent-images-grid">
+        {% for img in recent_images %}
+          <div class="recent-image-card">
+            <img src="{{ img.image.url }}" alt="{{ img.title }}" class="recent-image-thumb">
+            <div class="muted small">{{ img.title|default:"Bez názvu" }}</div>
+            <input type="text" readonly value="{{ request.scheme }}://{{ request.get_host }}{{ img.image.url }}" id="recent-img-url-{{ img.id }}">
+            <button type="button" onclick="copyImageUrl('recent-img-url-{{ img.id }}')">Kopírovat URL</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted">Zatím nejsou nahrané žádné obrázky.</p>
+    {% endif %}
+  </div>
+
 <form method="post" onsubmit="if (window.tinymce) { tinymce.triggerSave(); }" novalidate>
   {% csrf_token %}
 
@@ -131,6 +176,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 });
+</script>
+
+<script>
+function copyImageUrl(inputId) {
+  const input = document.getElementById(inputId);
+  input.select();
+  input.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(input.value);
+}
 </script>
 
 {% endblock rozesilac_content %}

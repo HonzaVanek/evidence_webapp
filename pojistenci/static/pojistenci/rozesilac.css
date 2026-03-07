@@ -170,3 +170,69 @@
   box-sizing: border-box;
   padding: 10px;
 }
+
+/* nahrávání obrázků */
+.image-panel {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fafafa;
+}
+
+.image-upload-inline {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.image-card,
+.recent-image-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+
+.image-thumb-wrap {
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.image-thumb,
+.recent-image-thumb {
+  max-width: 100%;
+  max-height: 180px;
+  display: block;
+}
+
+.image-url-box input,
+.recent-image-card input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 8px 0;
+  padding: 8px;
+}
+
+.recent-images-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.small {
+  font-size: 0.85rem;
+}
