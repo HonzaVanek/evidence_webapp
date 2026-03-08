@@ -1,5 +1,5 @@
 from django import forms
-from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate, EmailImage
+from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, ContactGroup, EmailTemplate, EmailImage
 from django.forms import DateInput, NumberInput
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
@@ -97,18 +97,46 @@ class BulkUploadForm(forms.Form):
 
 # rozesílač (importování kontaktů):
 
+class ContactGroupForm(forms.ModelForm):
+    class Meta:
+        model = ContactGroup
+        fields = ["name"]
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "Např. Lidi pro newsletter, Testovací skupina, Partneři, VIP", "class": "full-width-input"}),
+        }
+
 class ContactForm(forms.ModelForm):
     class Meta:
         model = Contact
-        fields = ["name", "email", "is_active"]
+        fields = ["name", "email", "is_active", "groups"]
         widgets = {
             "name": forms.TextInput(attrs={"placeholder": "Jméno (volitelné)"}),
             "email": forms.EmailInput(attrs={"placeholder": "email@domena.cz"}),
+            "is_active": forms.CheckboxInput,
+            "groups": forms.CheckboxSelectMultiple,
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["groups"].required = True
+        self.fields["groups"].error_messages = {"required": "Kontakt musí být přiřazen do jedné nebo více skupin."}
+
+    def clean_groups(self):
+        groups = self.cleaned_data.get("groups")
+        if not groups or groups.count() == 0:
+            raise forms.ValidationError("Kontakt musí být přiřazen alespoň do jedné skupiny.")
+        return groups
 
 
 class ContactImportForm(forms.Form):
     file = forms.FileField(help_text="XLSX se sloupci: jméno, email")
+    group = forms.ModelChoiceField(
+        queryset=ContactGroup.objects.all().order_by("name"),
+        required=True,
+        label="Přiřadit do skupiny",
+        empty_label="-- bez skupiny --",
+        error_messages={"required": "Musíš vybrat skupinu, do které se importované kontakty přiřadí."},
+    )
 
     def clean_file(self):
         f = self.cleaned_data["file"]
@@ -186,12 +214,15 @@ class EmailTemplateForm(forms.ModelForm):
     
 # odesílání kampaní:
 class SendCampaignForm(forms.Form):
-    SEND_MODE_CHOICES = [("test", "Testovací email"), ("live", "Ostré rozeslání"),]
+    SEND_MODE_CHOICES = [
+        ("test", "Testovací email"),
+        ("live", "Ostré rozeslání"),
+    ]
 
     template = forms.ModelChoiceField(
         queryset=EmailTemplate.objects.all().order_by("name"),
         label="Šablona",
-        empty_label="-- vyber šablonu k rozeslání --",
+        empty_label="-- vyber šablonu --",
     )
 
     send_mode = forms.ChoiceField(
@@ -207,10 +238,10 @@ class SendCampaignForm(forms.Form):
         widget=forms.EmailInput(attrs={"placeholder": "test@example.com"}),
     )
 
-    contacts = forms.ModelMultipleChoiceField(
-        queryset=Contact.objects.filter(is_active=True).order_by("email"),
+    groups = forms.ModelMultipleChoiceField(
+        queryset=ContactGroup.objects.all().order_by("name"),
         required=False,
-        label="Kontakty",
+        label="Skupiny kontaktů",
         widget=forms.CheckboxSelectMultiple,
     )
 
@@ -225,15 +256,15 @@ class SendCampaignForm(forms.Form):
 
         send_mode = cleaned_data.get("send_mode")
         test_email = cleaned_data.get("test_email")
-        contacts = cleaned_data.get("contacts")
+        groups = cleaned_data.get("groups")
 
         if send_mode == "test":
             if not test_email:
                 self.add_error("test_email", "U testovacího režimu musíš vyplnit testovací email.")
 
         elif send_mode == "live":
-            if not contacts or contacts.count() == 0:
-                self.add_error("contacts", "Pro ostré rozeslání musíš vybrat aspoň jeden kontakt.")
+            if not groups or groups.count() == 0:
+                self.add_error("groups", "Pro ostré rozeslání musíš vybrat aspoň jednu skupinu.")
 
         return cleaned_data
     

@@ -1,7 +1,7 @@
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate, EmailCampaign, EmailDelivery, EmailImage
-from .forms import PojistenecForm, PojisteniForm, TypPojisteniForm, BulkUploadForm, RegistraceForm, ContactForm, ContactImportForm, EmailTemplateForm, SendCampaignForm, EmailImageUploadForm
+from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate, EmailCampaign, EmailDelivery, EmailImage, ContactGroup
+from .forms import PojistenecForm, PojisteniForm, TypPojisteniForm, BulkUploadForm, RegistraceForm, ContactForm, ContactImportForm, EmailTemplateForm, SendCampaignForm, EmailImageUploadForm, ContactGroupForm
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseForbidden
 from django.contrib import messages
 from django.urls import reverse
@@ -1124,18 +1124,31 @@ def rozesilac_template_delete(request, template_id):
 
 @staff_member_required
 def rozesilac_contacts(request):
-    # mazání přes POST (bez JS)
-    if request.method == "POST" and request.POST.get("action") == "delete":
+    if request.method == "POST" and request.POST.get("action") == "delete_contact":
         contact_id = request.POST.get("contact_id")
         Contact.objects.filter(id=contact_id).delete()
         messages.success(request, "Kontakt smazán.")
         return redirect("rozesilac_contacts")
 
+    if request.method == "POST" and request.POST.get("action") == "add_group":
+        group_form = ContactGroupForm(request.POST)
+        if group_form.is_valid():
+            group_form.save()
+            messages.success(request, "Skupina byla vytvořena.")
+            return redirect("rozesilac_contacts")
+    else:
+        group_form = ContactGroupForm()
+
+    if request.method == "POST" and request.POST.get("action") == "delete_group":
+        group_id = request.POST.get("group_id")
+        ContactGroup.objects.filter(id=group_id).delete()
+        messages.success(request, "Skupina byla smazána.")
+        return redirect("rozesilac_contacts")
+
     add_form = ContactForm()
     import_form = ContactImportForm()
 
-    # přidání jednoho kontaktu
-    if request.method == "POST" and request.POST.get("action") == "add":
+    if request.method == "POST" and request.POST.get("action") == "add_contact":
         add_form = ContactForm(request.POST)
         if add_form.is_valid():
             try:
@@ -1145,16 +1158,15 @@ def rozesilac_contacts(request):
             except IntegrityError:
                 add_form.add_error("email", "Tento email už v kontaktech existuje.")
 
-    # import XLSX
     if request.method == "POST" and request.POST.get("action") == "import":
         import_form = ContactImportForm(request.POST, request.FILES)
         if import_form.is_valid():
             f = import_form.cleaned_data["file"]
+            selected_group = import_form.cleaned_data.get("group")
 
             wb = load_workbook(filename=f, data_only=True)
             ws = wb.active
 
-            # očekáváme hlavičku: jméno | email
             header_row = [str(c.value).strip().lower() if c.value is not None else "" for c in ws[1]]
 
             def find_col(possible_names):
@@ -1166,18 +1178,17 @@ def rozesilac_contacts(request):
             name_col = find_col({"jméno", "jmeno", "name"})
             email_col = find_col({"email", "e-mail", "e mail", "mail"})
 
-            if email_col is None:
-                messages.error(request, "V XLSX souboru chybí sloupec 'email'.")
+            if name_col is None or email_col is None:
+                messages.error(request, "XLSX musí mít v prvním řádku sloupce 'jméno' a 'email'.")
                 return redirect("rozesilac_contacts")
 
             created = 0
             skipped = 0
             invalid = 0
 
-            # od 2. řádku dál jsou data
             for row in ws.iter_rows(min_row=2, values_only=True):
                 raw_email = row[email_col] if email_col < len(row) else None
-                raw_name = row[name_col] if (name_col is not None and name_col < len(row)) else None
+                raw_name = row[name_col] if name_col < len(row) else None
 
                 email = (str(raw_email).strip() if raw_email is not None else "").lower()
                 name = str(raw_name).strip() if raw_name is not None else ""
@@ -1191,15 +1202,18 @@ def rozesilac_contacts(request):
                     invalid += 1
                     continue
 
-                # unique email -> pokud existuje, přeskoč
                 obj, was_created = Contact.objects.get_or_create(
                     email=email,
                     defaults={"name": name, "is_active": True},
                 )
+
                 if was_created:
                     created += 1
                 else:
                     skipped += 1
+
+                if selected_group:
+                    obj.groups.add(selected_group)
 
             messages.success(
                 request,
@@ -1207,15 +1221,45 @@ def rozesilac_contacts(request):
             )
             return redirect("rozesilac_contacts")
 
-    contacts = Contact.objects.order_by("email")
+    contacts = Contact.objects.prefetch_related("groups").order_by("groups__name", "email").distinct()
+    groups = ContactGroup.objects.all()
 
     return render(
         request,
         "pojistenci/rozesilac/contacts_list.html",
         {
             "contacts": contacts,
+            "groups": groups,
             "add_form": add_form,
             "import_form": import_form,
+            "group_form": group_form,
+        },
+    )
+
+@staff_member_required
+def rozesilac_contact_edit(request, contact_id):
+    contact = get_object_or_404(Contact, id=contact_id)
+
+    if request.method == "POST":
+        form = ContactForm(request.POST, instance=contact)
+        if form.is_valid():
+            try:
+                form.save()
+                messages.success(request, "Kontakt byl upraven.")
+                return redirect("rozesilac_contacts")
+            except IntegrityError:
+                form.add_error("email", "Tento email už v kontaktech existuje.")
+    else:
+        form = ContactForm(instance=contact)
+
+    return render(
+        request,
+        "pojistenci/rozesilac/contact_form.html",
+        {
+            "form": form,
+            "page_title": f"Upravit kontakt: {contact.email}",
+            "submit_label": "Uložit změny",
+            "contact_obj": contact,
         },
     )
 
@@ -1229,7 +1273,7 @@ def rozesilac_send(request):
             template = form.cleaned_data["template"]
             send_mode = form.cleaned_data["send_mode"]
             test_email = form.cleaned_data.get("test_email")
-            contacts = form.cleaned_data.get("contacts")
+            groups = form.cleaned_data.get("groups")
             note = form.cleaned_data.get("note", "")
 
             is_test = send_mode == "test"
@@ -1252,6 +1296,11 @@ def rozesilac_send(request):
                     "name": "",
                 })
             else:
+                contacts = Contact.objects.filter(
+                    is_active=True,
+                    groups__in=groups
+                ).distinct().order_by("email")
+
                 for contact in contacts:
                     recipients.append({
                         "email": contact.email,
@@ -1277,6 +1326,7 @@ def rozesilac_send(request):
                     msg = EmailMultiAlternatives(
                         subject=campaign.subject,
                         body=text_body,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
                         to=[recipient["email"]],
                     )
                     msg.attach_alternative(campaign.html_body, "text/html")
@@ -1309,7 +1359,11 @@ def rozesilac_send(request):
     else:
         form = SendCampaignForm()
 
-    return render(request, "pojistenci/rozesilac/send.html", {"form": form},)
+    return render(
+        request,
+        "pojistenci/rozesilac/send.html",
+        {"form": form},
+    )
 
 
 @staff_member_required

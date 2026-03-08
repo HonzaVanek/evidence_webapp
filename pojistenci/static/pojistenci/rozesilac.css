@@ -163,6 +163,21 @@
   margin-bottom: 8px;
 }
 
+.contact-group-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  margin: 2px 4px 2px 0;
+  border-radius: 999px;
+  background: #eef4ff;
+  border: 1px solid #cddcf7;
+  font-size: 0.85rem;
+}
+
+.full-width-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 #id_template,
 #id_test_email,
 #id_note {

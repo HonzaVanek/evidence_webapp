@@ -46,12 +46,12 @@
     {% endfor %}
   </div>
 
-  <div class="template-form-row" id="contacts-row">
-    <label>Kontakty</label>
+  <div class="template-form-row" id="groups-row">
+    <label>Skupiny kontaktů</label>
     <div class="contacts-box">
-      {{ form.contacts }}
+      {{ form.groups }}
     </div>
-    {% for e in form.contacts.errors %}
+    {% for e in form.groups.errors %}
       <div class="form-errors">{{ e }}</div>
     {% endfor %}
   </div>
@@ -73,7 +73,7 @@
 document.addEventListener("DOMContentLoaded", function () {
   const modeInputs = document.querySelectorAll('input[name="send_mode"]');
   const testEmailRow = document.getElementById("test-email-row");
-  const contactsRow = document.getElementById("contacts-row");
+  const groupsRow = document.getElementById("groups-row");
   const form = document.getElementById("send-campaign-form");
 
   function updateModeVisibility() {
@@ -81,13 +81,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const mode = selected ? selected.value : "test";
 
     if (mode === "test") {
-      testEmailRow.style.display = "block";
-      contactsRow.style.display = "none";
+    testEmailRow.style.display = "block";
+    groupsRow.style.display = "none";
     } else {
-      testEmailRow.style.display = "none";
-      contactsRow.style.display = "block";
+    testEmailRow.style.display = "none";
+    groupsRow.style.display = "block";
     }
-  }
 
   modeInputs.forEach(function (input) {
     input.addEventListener("change", updateModeVisibility);
@@ -101,7 +100,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (mode === "live") {
       const checkedContacts = document.querySelectorAll('#contacts-row input[type="checkbox"]:checked').length;
-      const confirmed = confirm(`Opravdu chceš odeslat ostrou kampaň na ${checkedContacts} kontakt(ů)?`);
+      const confirmed = confirm("Opravdu chceš odeslat ostrou kampaň na vybrané skupiny?");
       if (!confirmed) {
         e.preventDefault();
       }

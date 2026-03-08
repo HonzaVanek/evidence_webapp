@@ -41,11 +41,29 @@ class Pojisteni(models.Model):
 
 # rozesílač (newsletter):
 
+class ContactGroup(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name="Název skupiny")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Skupina kontaktů"
+        verbose_name_plural = "Skupiny kontaktů"
+
+    def __str__(self):
+        return self.name
+
 class Contact(models.Model):
     """Jednoduchý seznam příjemců"""
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=200, blank=True)
     is_active = models.BooleanField(default=True)
+    groups = models.ManyToManyField(
+        ContactGroup,
+        blank=True,
+        related_name="contacts",
+        verbose_name="Skupiny",
+    )
 
     def __str__(self) -> str:
         return f"{self.name} <{self.email}>" if self.name else self.email
