@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator, validate_email
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
+from django.conf import settings
 
 import re
 from bs4 import BeautifulSoup
@@ -225,6 +226,14 @@ class SendCampaignForm(forms.Form):
         empty_label="-- vyber šablonu --",
     )
 
+    from_email = forms.ChoiceField(
+        label="Odesílatel",
+        choices=[
+            (email, f"{name} <{email}>")
+            for email, name in settings.ALLOWED_FROM_EMAILS
+        ]
+    )
+
     send_mode = forms.ChoiceField(
         choices=SEND_MODE_CHOICES,
         widget=forms.RadioSelect,
@@ -245,11 +254,24 @@ class SendCampaignForm(forms.Form):
         widget=forms.CheckboxSelectMultiple,
     )
 
+    contacts = forms.ModelMultipleChoiceField(
+        queryset=Contact.objects.filter(is_active=True).prefetch_related("groups").order_by("email"),
+        required=False,
+        label="Kontakty",
+        widget=forms.CheckboxSelectMultiple,
+    )
+
     note = forms.CharField(
         required=False,
         label="Poznámka",
         widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Volitelná interní poznámka ke kampani"}),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # popisek skupiny s počtem aktivních kontaktů
+        self.fields["groups"].label_from_instance = lambda obj: f"{obj.name} ({obj.contacts.filter(is_active=True).count()})"
 
     def clean(self):
         cleaned_data = super().clean()
@@ -257,6 +279,7 @@ class SendCampaignForm(forms.Form):
         send_mode = cleaned_data.get("send_mode")
         test_email = cleaned_data.get("test_email")
         groups = cleaned_data.get("groups")
+        contacts = cleaned_data.get("contacts")
 
         if send_mode == "test":
             if not test_email:
@@ -265,6 +288,9 @@ class SendCampaignForm(forms.Form):
         elif send_mode == "live":
             if not groups or groups.count() == 0:
                 self.add_error("groups", "Pro ostré rozeslání musíš vybrat aspoň jednu skupinu.")
+
+            if not contacts or contacts.count() == 0:
+                self.add_error("contacts", "Pro ostré rozeslání musíš nechat vybraný aspoň jeden kontakt.")
 
         return cleaned_data
     

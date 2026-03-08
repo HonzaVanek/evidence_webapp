@@ -1266,15 +1266,18 @@ def rozesilac_contact_edit(request, contact_id):
 
 @staff_member_required
 def rozesilac_send(request):
+
     if request.method == "POST":
         form = SendCampaignForm(request.POST)
 
         if form.is_valid():
+
             template = form.cleaned_data["template"]
             send_mode = form.cleaned_data["send_mode"]
             test_email = form.cleaned_data.get("test_email")
-            groups = form.cleaned_data.get("groups")
+            contacts = form.cleaned_data.get("contacts")
             note = form.cleaned_data.get("note", "")
+            from_email = form.cleaned_data.get("from_email") or settings.DEFAULT_FROM_EMAIL
 
             is_test = send_mode == "test"
 
@@ -1288,6 +1291,10 @@ def rozesilac_send(request):
                 note=note,
             )
 
+            # --------------------------------------------------
+            # připravíme seznam příjemců
+            # --------------------------------------------------
+
             recipients = []
 
             if is_test:
@@ -1296,11 +1303,6 @@ def rozesilac_send(request):
                     "name": "",
                 })
             else:
-                contacts = Contact.objects.filter(
-                    is_active=True,
-                    groups__in=groups
-                ).distinct().order_by("email")
-
                 for contact in contacts:
                     recipients.append({
                         "email": contact.email,
@@ -1310,7 +1312,12 @@ def rozesilac_send(request):
             sent_count = 0
             failed_count = 0
 
+            # --------------------------------------------------
+            # odesílání
+            # --------------------------------------------------
+
             for recipient in recipients:
+
                 delivery = EmailDelivery.objects.create(
                     campaign=campaign,
                     to_email=recipient["email"],
@@ -1319,17 +1326,21 @@ def rozesilac_send(request):
                 )
 
                 try:
+
                     text_body = campaign.text_body.strip() if campaign.text_body else ""
+
                     if not text_body:
                         text_body = "Tento email obsahuje HTML verzi zprávy."
 
                     msg = EmailMultiAlternatives(
                         subject=campaign.subject,
                         body=text_body,
-                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        from_email=from_email,
                         to=[recipient["email"]],
                     )
+
                     msg.attach_alternative(campaign.html_body, "text/html")
+
                     msg.send(fail_silently=False)
 
                     delivery.status = "sent"
@@ -1340,14 +1351,22 @@ def rozesilac_send(request):
                     sent_count += 1
 
                 except Exception as exc:
+
                     delivery.status = "failed"
                     delivery.error = str(exc)
                     delivery.save(update_fields=["status", "error"])
 
                     failed_count += 1
 
+            # --------------------------------------------------
+            # zpráva pro uživatele
+            # --------------------------------------------------
+
             if failed_count == 0:
-                messages.success(request, f"Odeslání dokončeno. Úspěšně odesláno: {sent_count}.")
+                messages.success(
+                    request,
+                    f"Odeslání dokončeno. Úspěšně odesláno: {sent_count}."
+                )
             else:
                 messages.warning(
                     request,
@@ -1362,7 +1381,10 @@ def rozesilac_send(request):
     return render(
         request,
         "pojistenci/rozesilac/send.html",
-        {"form": form},
+        {
+            "form": form,
+            "templates_for_preview": EmailTemplate.objects.all().order_by("name"),
+        },
     )
 
 

@@ -169,9 +169,15 @@ LOGOUT_REDIRECT_URL = '/login'
 
 
 # ---- EMAIL ----
+ALLOWED_FROM_EMAILS = [
+    ("info@lieder-society.cz", "Lieder Society"),
+    ("info@kekor.cz", "Kekor"),
+    ("noreply@kekor.cz", "Kekor no-reply"),
+]
+
 if APP_ENV == "prod":
     EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
-    DEFAULT_FROM_EMAIL = "noreply@kekor.cz"
+    DEFAULT_FROM_EMAIL = "info@lieder-society.cz"
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
     DEFAULT_FROM_EMAIL = "local@test.project"
