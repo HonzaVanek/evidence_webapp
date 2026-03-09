@@ -33,6 +33,14 @@
   </div>
 
   <div class="template-form-row">
+    <label for="{{ form.salutation.id_for_label }}">Oslovení</label>
+    {{ form.salutation }}
+    {% for e in form.salutation.errors %}
+      <div class="form-errors">{{ e }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="template-form-row">
     <label for="{{ form.is_active.id_for_label }}">Aktivní</label>
     {{ form.is_active }}
     {% for e in form.is_active.errors %}

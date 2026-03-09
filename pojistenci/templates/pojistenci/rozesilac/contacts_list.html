@@ -5,6 +5,8 @@
 {% block rozesilac_content %}
 <h2>Kontakty</h2>
 
+<p class="help-text">Zde můžeš spravovat kontakty pro rozesílání emailů. Nejprve vytvoř jednu nebo více skupin kontaktů. Pak můžeš do jednotlivých skupin přidávat kontakty (jeden kontakt může být i ve více skupinách najednou). To pole aktivní je defaultně zaškrtnuté, pokud je odškrtnuté, tak to znamená, že kontakt sice máme ve skupině, ale maily mu posílat nebudeme. Kontakty lze nahrávat i hromadně přes Excel, z toho drop-down MENU nejdřív vyber do jaké skupiny chceš kontakty importovat. Dole pak je seznam úplně všech kontaktů, lze je i upravovat.</p>
+
 {% if messages %}
 <ul class="messages">
   {% for m in messages %}
@@ -95,7 +97,7 @@
 </form>
 
 <h3>Import z XLSX</h3>
-<p class="muted">Soubor musí mít první řádek hlavičky: <strong>jméno</strong> a <strong>email</strong>.</p>
+<p class="muted">Soubor musí mít první řádek hlavičky: <strong>jméno</strong> a <strong>email</strong>, ideálně i <strong>oslovení</strong>.</p>
 
 <form method="post" enctype="multipart/form-data" style="margin-bottom:20px;">
   {% csrf_token %}
@@ -122,6 +124,7 @@
   <thead>
     <tr>
       <th>Jméno</th>
+      <th>Oslovení</th>
       <th>Email</th>
       <th>Skupiny</th>
       <th>Aktivní</th>
@@ -132,6 +135,7 @@
     {% for c in contacts %}
       <tr>
         <td>{{ c.name }}</td>
+        <td>{{ c.salutation|default:"—" }}</td>
         <td>{{ c.email }}</td>
         <td>
           {% for g in c.groups.all %}

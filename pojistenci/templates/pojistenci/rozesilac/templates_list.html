@@ -5,6 +5,8 @@
 {% block rozesilac_content %}
 <h2>Šablony</h2>
 
+<p class="help-text">Toto je stránka se seznamem existujících šablon. Je možné vytvořit novou šablonu, nebo upravit či smazat nějakou stávající ze seznamu níže. Do šablony lze vkládat proměnné, které budou nahrazeny konkrétními hodnotami při rozesílání. Zatím máme jeden takový placeholder, a sice {{ osloveni }}. Tohle když tam dáš, ve finálním emailu se místo toho dá text, který má kontakt v poli oslovení. (viz stránka kontakty). Pokud není oslovení u kontaktu vyplněno, použije se jméno kontaktu, pokud ani to není vyplněno, tak email. Proto by bylo dobré, aby všechny kontakty raději měly pole oslovení vyplněné.</p>
+
 {% if messages %}
 <ul class="messages">
   {% for m in messages %}

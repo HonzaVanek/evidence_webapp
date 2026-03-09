@@ -17,6 +17,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.views import LoginView
 from .forms import VlastniLoginForm, RegistraceForm
 from django.core.mail import send_mail, EmailMessage, EmailMultiAlternatives
+from django.template import Context, Template
 from django.template.loader import render_to_string
 from django.conf import settings
 from openpyxl import load_workbook, Workbook
@@ -1122,6 +1123,14 @@ def rozesilac_template_delete(request, template_id):
         {"template_obj": template_obj},
     )
 
+#pomocná funkce
+def get_contact_salutation(contact):
+    if contact.salutation and contact.salutation.strip():
+        return contact.salutation.strip()
+    if contact.name and contact.name.strip():
+        return contact.name.strip()
+    return contact.email
+
 @staff_member_required
 def rozesilac_contacts(request):
     if request.method == "POST" and request.POST.get("action") == "delete_contact":
@@ -1177,6 +1186,7 @@ def rozesilac_contacts(request):
 
             name_col = find_col({"jméno", "jmeno", "name"})
             email_col = find_col({"email", "e-mail", "e mail", "mail"})
+            salutation_col = find_col({"osloveni", "salutation", "pozdrav", "oslovení"})
 
             if name_col is None or email_col is None:
                 messages.error(request, "XLSX musí mít v prvním řádku sloupce 'jméno' a 'email'.")
@@ -1189,9 +1199,11 @@ def rozesilac_contacts(request):
             for row in ws.iter_rows(min_row=2, values_only=True):
                 raw_email = row[email_col] if email_col < len(row) else None
                 raw_name = row[name_col] if name_col < len(row) else None
+                raw_salutation = row[salutation_col] if (salutation_col is not None and salutation_col < len(row)) else None
 
                 email = (str(raw_email).strip() if raw_email is not None else "").lower()
                 name = str(raw_name).strip() if raw_name is not None else ""
+                salutation = str(raw_salutation).strip() if raw_salutation is not None else ""
 
                 if not email:
                     continue
@@ -1204,7 +1216,7 @@ def rozesilac_contacts(request):
 
                 obj, was_created = Contact.objects.get_or_create(
                     email=email,
-                    defaults={"name": name, "is_active": True},
+                    defaults={"name": name, "salutation": salutation, "is_active": True},
                 )
 
                 if was_created:
@@ -1301,12 +1313,14 @@ def rozesilac_send(request):
                 recipients.append({
                     "email": test_email,
                     "name": "",
+                    "contact": None,
                 })
             else:
                 for contact in contacts:
                     recipients.append({
                         "email": contact.email,
                         "name": contact.name,
+                        "contact": contact,
                     })
 
             sent_count = 0
@@ -1327,19 +1341,32 @@ def rozesilac_send(request):
 
                 try:
 
-                    text_body = campaign.text_body.strip() if campaign.text_body else ""
+                    contact = recipient.get("contact")
+                    osloveni = get_contact_salutation(contact) if contact else recipient["email"]
 
-                    if not text_body:
-                        text_body = "Tento email obsahuje HTML verzi zprávy."
+                    template_context = Context({
+                        "osloveni": osloveni,
+                        "jmeno": contact.name if contact and contact.name else "",
+                        "email": recipient["email"],
+                    })
+
+                    rendered_subject = Template(campaign.subject).render(template_context)
+                    rendered_html_body = Template(campaign.html_body).render(template_context)
+
+                    text_template = campaign.text_body.strip() if campaign.text_body else ""
+                    if text_template:
+                        rendered_text_body = Template(text_template).render(template_context)
+                    else:
+                        rendered_text_body = "Tento email obsahuje HTML verzi zprávy."
 
                     msg = EmailMultiAlternatives(
-                        subject=campaign.subject,
-                        body=text_body,
+                        subject=rendered_subject,
+                        body=rendered_text_body,
                         from_email=from_email,
                         to=[recipient["email"]],
                     )
 
-                    msg.attach_alternative(campaign.html_body, "text/html")
+                    msg.attach_alternative(rendered_html_body, "text/html")
 
                     msg.send(fail_silently=False)
 
@@ -1443,14 +1470,18 @@ def rozesilac_campaigns(request):
 # rozesílač - nahrávání obrázků na server pro použití v šablonách:
 @staff_member_required
 def rozesilac_images(request):
+    upload_form = EmailImageUploadForm()
+
     if request.method == "POST":
         if request.POST.get("action") == "upload":
             upload_form = EmailImageUploadForm(request.POST, request.FILES)
+
             if upload_form.is_valid():
                 obj = upload_form.save(commit=False)
                 obj.uploaded_by = request.user
                 obj.file_size = obj.image.size
                 obj.save()
+
                 messages.success(request, "Obrázek byl nahrán.")
                 return redirect("rozesilac_images")
 
@@ -1458,18 +1489,12 @@ def rozesilac_images(request):
             image_id = request.POST.get("image_id")
             obj = get_object_or_404(EmailImage, id=image_id)
 
-            # smažeme soubor i DB záznam
             if obj.image:
                 obj.image.delete(save=False)
             obj.delete()
 
             messages.success(request, "Obrázek byl smazán.")
             return redirect("rozesilac_images")
-    else:
-        upload_form = EmailImageUploadForm()
-
-    if request.method != "POST" or request.POST.get("action") != "upload":
-        upload_form = EmailImageUploadForm()
 
     images = EmailImage.objects.all()
     total_size = EmailImage.objects.aggregate(total=Sum("file_size"))["total"] or 0
@@ -1501,7 +1526,12 @@ def rozesilac_image_upload(request):
         obj.save()
         messages.success(request, "Obrázek byl nahrán.")
     else:
-        for field, errors in form.errors.items():
+        for error in form.non_field_errors():
+            messages.error(request, error)
+            
+        for field_name, errors in form.errors.items():
+            if field_name == "__all__":
+                continue
             for error in errors:
                 messages.error(request, error)
 

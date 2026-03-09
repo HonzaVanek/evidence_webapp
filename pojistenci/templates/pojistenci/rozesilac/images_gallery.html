@@ -19,6 +19,14 @@
 
 <h3>Nahrát obrázek</h3>
 
+{% if upload_form.non_field_errors %}
+  <div class="form-errors" style="margin-bottom: 10px;">
+    {% for error in upload_form.non_field_errors %}
+      <div>{{ error }}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
   <input type="hidden" name="action" value="upload">
@@ -26,17 +34,27 @@
   <div class="template-form-row">
     <label for="{{ upload_form.title.id_for_label }}">Název</label>
     {{ upload_form.title }}
+    {% for e in upload_form.title.errors %}
+      <div class="form-errors">{{ e }}</div>
+    {% endfor %}
   </div>
 
   <div class="template-form-row">
     <label for="{{ upload_form.image.id_for_label }}">Soubor</label>
     {{ upload_form.image }}
+    {% for e in upload_form.image.errors %}
+      <div class="form-errors">{{ e }}</div>
+    {% endfor %}
   </div>
 
   <div class="form-actions">
     <button type="submit">Nahrát obrázek</button>
   </div>
+
 </form>
+
+
+
 
 <h3>Galerie</h3>
 

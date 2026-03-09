@@ -109,10 +109,11 @@ class ContactGroupForm(forms.ModelForm):
 class ContactForm(forms.ModelForm):
     class Meta:
         model = Contact
-        fields = ["name", "email", "is_active", "groups"]
+        fields = ["name", "salutation","email", "is_active", "groups"]
         widgets = {
             "name": forms.TextInput(attrs={"placeholder": "Jméno (volitelné)"}),
             "email": forms.EmailInput(attrs={"placeholder": "email@domena.cz"}),
+            "salutation": forms.TextInput(attrs={"placeholder": "Např. Vážený pane Nováku"}),
             "is_active": forms.CheckboxInput,
             "groups": forms.CheckboxSelectMultiple,
         }

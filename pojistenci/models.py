@@ -58,6 +58,7 @@ class Contact(models.Model):
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=200, blank=True)
     is_active = models.BooleanField(default=True)
+    salutation = models.CharField(max_length=100, blank=True, verbose_name="Oslovení", help_text="Oslovení (např. 'Vážený pane Nováku')")
     groups = models.ManyToManyField(
         ContactGroup,
         blank=True,
