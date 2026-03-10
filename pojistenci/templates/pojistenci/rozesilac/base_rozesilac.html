@@ -10,14 +10,14 @@
   <aside class="rozesilac-sidebar">
     <h2 class="rozesilac-title">Rozesílač - MENU</h2>
 
-    <nav class="rozesilac-nav">
-      <a href="{% url 'rozesilac_dashboard' %}">Dashboard</a>
-      <a href="{% url 'rozesilac_templates' %}">Šablony</a>
-      <a href="{% url 'rozesilac_contacts' %}">Kontakty</a>
-      <a href="{% url 'rozesilac_images' %}">Obrázky</a>
-      <a href="{% url 'rozesilac_send' %}">Odeslat</a>
-      <a href="{% url 'rozesilac_campaigns' %}">Kampaně</a>
-    </nav>
+      <nav class="rozesilac-nav">
+        <a href="{% url 'rozesilac_dashboard' %}" class="{% if request.resolver_match.url_name == 'rozesilac_dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="{% url 'rozesilac_templates' %}" class="{% if request.resolver_match.url_name == 'rozesilac_templates' or request.resolver_match.url_name == 'rozesilac_template_edit' or request.resolver_match.url_name == 'rozesilac_template_create' %}active{% endif %}">Šablony</a>
+        <a href="{% url 'rozesilac_contacts' %}" class="{% if request.resolver_match.url_name == 'rozesilac_contacts' or request.resolver_match.url_name == 'rozesilac_contact_edit' %}active{% endif %}">Kontakty</a>
+        <a href="{% url 'rozesilac_images' %}" class="{% if request.resolver_match.url_name == 'rozesilac_images' %}active{% endif %}">Obrázky</a>
+        <a href="{% url 'rozesilac_send' %}" class="{% if request.resolver_match.url_name == 'rozesilac_send' %}active{% endif %}">Odeslat</a>
+        <a href="{% url 'rozesilac_campaigns' %}" class="{% if request.resolver_match.url_name == 'rozesilac_campaigns' or request.resolver_match.url_name == 'rozesilac_campaign_detail' %}active{% endif %}">Kampaně</a>
+      </nav>
   </aside>
 
   <main class="rozesilac-main">

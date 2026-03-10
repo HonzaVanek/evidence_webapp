@@ -15,9 +15,10 @@
 </ul>
 {% endif %}
 
+<section class="content-section">
 <h3>Skupiny kontaktů</h3>
 
-<form method="post" style="margin-bottom:16px;">
+<form method="post" class="section-form">
   {% csrf_token %}
   <input type="hidden" name="action" value="add_group">
 
@@ -36,6 +37,7 @@
 </form>
 
 {% if groups %}
+<div class="table-responsive">
   <table class="table" style="margin-bottom: 24px;">
     <thead>
       <tr>
@@ -61,10 +63,12 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 {% endif %}
-
+</section>
+<section class="content-section">
 <h3>Přidat kontakt</h3>
-<form method="post" style="margin-bottom:16px;">
+<form method="post" class="section-form">
   {% csrf_token %}
   <input type="hidden" name="action" value="add_contact">
 
@@ -95,7 +99,9 @@
     <button type="submit">Uložit</button>
   </div>
 </form>
+</section>
 
+<section class="content-section content-section-soft">
 <h3>Import z XLSX</h3>
 <p class="muted">Soubor musí mít první řádek hlavičky: <strong>jméno</strong> a <strong>email</strong>, ideálně i <strong>oslovení</strong>.</p>
 
@@ -116,7 +122,9 @@
 
   <button type="submit">Importovat</button>
 </form>
+</section>
 
+<section class="content-section">
 <h3>Seznam uložených kontaktů</h3>
 
 {% if contacts %}
@@ -159,6 +167,7 @@
     {% endfor %}
   </tbody>
 </table>
+</section>
 {% else %}
 <p class="muted">Zatím žádné kontakty.</p>
 {% endif %}
