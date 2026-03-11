@@ -312,6 +312,10 @@
   align-items: end;
 }
 
+.form-grid input[type="checkbox"] {
+  transform: scale(1.2);
+}
+
 .template-form-row,
 .form-group {
   margin-bottom: 18px;

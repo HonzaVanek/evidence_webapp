@@ -72,11 +72,16 @@
   {% csrf_token %}
   <input type="hidden" name="action" value="add_contact">
 
-  <div class="form-grid" style="grid-template-columns: 1fr 1fr 160px;">
+  <div class="form-grid" style="grid-template-columns: 1fr 1fr 1.5fr 120px;">
     <div>
       <label>Jméno</label>
       {{ add_form.name }}
       {% for e in add_form.name.errors %}<div class="form-errors">{{ e }}</div>{% endfor %}
+    </div>
+    <div>
+      <label>Oslovení</label>
+      {{ add_form.salutation }}
+      {% for e in add_form.salutation.errors %}<div class="form-errors">{{ e }}</div>{% endfor %}
     </div>
     <div>
       <label>Email</label>
