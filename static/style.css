@@ -6,14 +6,19 @@
   padding: 0;
   box-sizing: border-box;
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.5;
   color: #333;
 }
 
 /* =============================
-   HEADER (mobile-first / default)
+   HEADER (mobile-first)
    ============================= */
 header {
   display: flex;
@@ -23,20 +28,24 @@ header {
   color: white;
   padding: 1rem;
 }
+
 #nazev_aplikace {
   width: 100%;
   text-align: center;
   margin-bottom: 0.75rem;
 }
+
 #nazev_aplikace h1 {
   font-size: 1.4rem;
   font-weight: bold;
   color: white;
 }
+
 #nazev_aplikace span {
   font-weight: 300;
   margin-left: 0.3rem;
 }
+
 #nazev_aplikace small {
   display: block;
   font-size: 0.7rem;
@@ -47,8 +56,13 @@ header {
 /* =============================
    MENU + PŘIHLÁŠENÍ (mobile-first)
    ============================= */
-.menu ul,
-.prihlaseni_registrace ul {
+.menu,
+.prihlaseni_registrace {
+  width: 100%;
+}
+
+.menu > ul,
+.prihlaseni_registrace > ul {
   list-style: none;
   display: flex;
   flex-direction: column;
@@ -56,20 +70,33 @@ header {
   width: 100%;
   margin-bottom: 1rem;
 }
-.menu li a,
+
+.menu > ul > li,
+.prihlaseni_registrace > ul > li {
+  position: relative;
+}
+
+.menu a,
 .prihlaseni_registrace a,
 .btn-logout {
   color: white;
   text-decoration: none;
   font-weight: 500;
   position: relative;
-  padding: 0.5rem 0;
   font-size: 0.9rem;
 }
-.menu li a:hover::after,
+
+/* hlavní položky menu */
+.menu > ul > li > a {
+  display: block;
+  padding: 0.5rem 0;
+}
+
+/* hover podtržení jen u hlavních položek */
+.menu > ul > li > a:hover::after,
 .prihlaseni_registrace a:hover::after,
 .btn-logout:hover::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 100%;
   height: 2px;
@@ -77,8 +104,10 @@ header {
   bottom: 0;
   left: 0;
 }
-.menu li.aktivni a::after {
-  content: '';
+
+/* aktivní hlavní položka */
+.menu > ul > li.aktivni > a::after {
+  content: "";
   position: absolute;
   width: 100%;
   height: 4px;
@@ -88,23 +117,74 @@ header {
 }
 
 /* =============================
+   SUBMENU
+   ============================= */
+.submenu {
+  list-style: none;
+  margin-top: 0.25rem;
+  margin-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.submenu li a {
+  display: block;
+  padding: 0.35rem 0;
+  font-size: 0.88rem;
+  color: #eaf4ff;
+}
+
+.submenu li a:hover {
+  text-decoration: underline;
+}
+
+/* =============================
+   LOGOUT BUTTON
+   ============================= */
+.btn-logout {
+  background-color: transparent;
+  color: #ffffff;
+  border: 1px solid #ffffff;
+  border-radius: 4px;
+  padding: 0.4rem 0.8rem;
+  margin-left: 0;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-logout:hover {
+  background-color: #ffffff;
+  color: #007BFF;
+  border-color: #ffffff;
+}
+
+.btn-logout:hover::after {
+  display: none;
+}
+
+/* =============================
    ZPRÁVY (messages)
    ============================= */
 .messages {
   list-style: none;
   margin: 1rem 2rem;
 }
+
 .messages li {
   border-radius: 5px;
   padding: 0.75rem 1rem;
   margin-bottom: 0.5rem;
   font-weight: bold;
 }
+
 .messages .success {
   background-color: #d4edda;
   color: #155724;
   border: 1px solid #c3e6cb;
 }
+
 .messages .deleted {
   background-color: #f8d7da;
   color: #721c24;
@@ -121,22 +201,27 @@ header {
   border-collapse: collapse;
   font-family: inherit;
 }
+
 #api-table th,
 #api-table td {
   padding: 0.75em 1.5em;
   text-align: left;
   border-bottom: 1px solid #bdc3c7;
 }
+
 #api-table thead {
   background-color: #ecf0f1;
 }
+
 #api-table thead th {
   color: #2c3e50;
   font-weight: 600;
 }
+
 #api-table tbody tr:nth-child(even) {
   background-color: #f9f9f9;
 }
+
 #api-table tbody tr:hover {
   background-color: #f1f1f1;
 }
@@ -148,11 +233,13 @@ header {
   text-align: center;
   margin-bottom: 2rem;
 }
+
 .button-group {
   display: inline-flex;
   gap: 1rem;
   margin-top: 1rem;
 }
+
 .button-group button {
   color: #fff;
   border: none;
@@ -162,23 +249,27 @@ header {
   cursor: pointer;
   transition: background-color 0.2s, transform 0.1s;
 }
+
 #btn-email {
   background-color: #2ecc71;
 }
+
 #btn-email:hover {
   background-color: #27ae60;
   transform: translateY(-1px);
 }
+
 #btn-phone {
   background-color: #e67e22;
 }
+
 #btn-phone:hover {
   background-color: #d35400;
   transform: translateY(-1px);
 }
 
 /* =============================
-   DESKTOP-ONLY (min-width: 1200px)
+   DESKTOP
    ============================= */
 @media (min-width: 1200px) {
   header {
@@ -187,62 +278,95 @@ header {
     align-items: center;
     padding: 1rem 2rem;
   }
+
   #nazev_aplikace {
     width: auto;
     text-align: left;
     margin-bottom: 0;
   }
+
   #nazev_aplikace h1 {
     font-size: 1.8rem;
   }
+
   #nazev_aplikace small {
     font-size: 0.8rem;
   }
-  .menu ul,
-  .prihlaseni_registrace ul {
+
+  .menu,
+  .prihlaseni_registrace {
+    width: auto;
+  }
+
+  .menu > ul,
+  .prihlaseni_registrace > ul {
     flex-direction: row;
+    align-items: center;
     gap: 2rem;
     width: auto;
     margin-bottom: 0;
   }
-  .menu li a {
+
+  .menu > ul > li > a {
     font-size: 1.3rem;
-    padding-bottom: 5px;
+    padding: 0.4rem 0;
   }
+
   .prihlaseni_registrace a,
-  .btn-logout {
+  .btn-logout,
+  .user-info {
     font-size: 1.2rem;
-    padding-bottom: 5px;
   }
-  .menu li a:hover::after,
-  .prihlaseni_registrace a:hover::after,
-  .btn-logout:hover::after {
+
+  .btn-logout {
+    margin-left: 1rem;
+  }
+
+  .menu > ul > li > a:hover::after,
+  .prihlaseni_registrace a:hover::after {
     height: 2px;
   }
-  .menu li.aktivni a::after {
+
+  .menu > ul > li.aktivni > a::after {
     height: 4px;
     bottom: -2px;
   }
-}
 
+  /* desktop dropdown */
+  .submenu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 240px;
+    margin-left: 0;
+    margin-top: 0;
+    padding: 0.4rem 0;
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+    z-index: 1000;
+    gap: 0;
+  }
 
-.btn-logout {
-  background-color: transparent;    /* průhledné, aby ladilo s headerem */
-  color: #ffffff;                   /* bílý text */
-  border: 1px solid #ffffff;        /* bílý rámeček */
-  border-radius: 4px;
-  padding: 0.4rem 0.8rem;
-  margin-left: 1rem;
-  font-weight: 500;
-  cursor: pointer;                  /* ukazatel ruky */
-  transition: background-color 0.2s, color 0.2s;
-}
-.btn-logout:hover {
-  background-color: #ffffff;        /* bílé pozadí */
-  color: #007BFF;                   /* modrý text, kontrastně */
-  border-color: #ffffff;            /* zachovává rámeček */
-}
+  .has-submenu:hover .submenu {
+    display: block;
+  }
 
-html {
-    scroll-behavior: smooth;
+  .submenu li {
+    width: 100%;
+  }
+
+  .submenu li a {
+    color: #333;
+    padding: 0.7rem 1rem;
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+
+  .submenu li a:hover {
+    background-color: #f2f2f2;
+    text-decoration: none;
+  }
 }

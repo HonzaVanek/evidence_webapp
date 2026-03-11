@@ -5,29 +5,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock title %}</title>
-    <link rel="stylesheet" href="{% static "style.css" %}" type="text/css" />
+    <link rel="stylesheet" href="{% static 'style.css' %}" type="text/css" />
     <link rel="stylesheet" href="{% block style %}{% endblock style %}" type="text/css" />
     <link rel="icon" href="{% static 'favicon_pojistenci.png' %}" type="image/png">
 </head>
 
 <body>
     <header>
-        <a href="{% url "homepage" %}" style="text-decoration: none; color: inherit;">
+        <a href="{% url 'homepage' %}" style="text-decoration: none; color: inherit;">
             <div id="nazev_aplikace">
                 <h1>CRUD<span>Databáze</span></h1>
                 <small>aplikace pro správu databáze + mnoho dalšího</small>
             </div>
         </a>
-        <nav class='menu'>
+
+        <nav class="menu">
             <ul>
-                <li class='aktivni_pojistenci'><a href="{% url "pojistenci" %}">Pojištěnci</a></li>
-                <li class='aktivni_pojisteni'><a href="{% url "pojisteni-vypis" %}">Pojištění</a></li>
-                <li class='aktivni_API'><a href="{% url "vypis-api" %}">API</a></li>
-                <li class='aktivni_vychytavky'><a href="{% url "vychytavky" %}">Python vychytávky</a></li>
-                <li class='aktivni_o_aplikaci'><a href="{% url "o-aplikaci" %}">O aplikaci...</a></li>
+                <li class="has-submenu aktivni_sprava_databaze">
+                    <a href="#">Správa databáze</a>
+                    <ul class="submenu">
+                        <li class="aktivni_pojistenci">
+                            <a href="{% url 'pojistenci' %}">CRUD Pojištěnci</a>
+                        </li>
+                        <li class="aktivni_pojisteni">
+                            <a href="{% url 'pojisteni-vypis' %}">CRUD Pojištění</a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li class="aktivni_API"><a href="{% url 'vypis-api' %}">API</a></li>
+                <li class="aktivni_vychytavky"><a href="{% url 'vychytavky' %}">Python vychytávky</a></li>
+                <li class="aktivni_o_aplikaci"><a href="{% url 'o-aplikaci' %}">O aplikaci...</a></li>
             </ul>
         </nav>
-        <nav class='prihlaseni_registrace'>
+
+        <nav class="prihlaseni_registrace">
             <ul>
                 {% if request.user.is_authenticated %}
                     <li><span class="user-info">Přihlášen: {{ request.user.username }}</span></li>
@@ -38,14 +50,14 @@
                         </form>
                     </li>
                 {% else %}
-                    <li class='aktivni_prihlaseni'><a href="{% url 'login' %}">Přihlásit</a></li>
-                    <li class='aktivni_registrace'><a href="{% url 'registrace' %}">Registrovat</a></li>
+                    <li class="aktivni_prihlaseni"><a href="{% url 'login' %}">Přihlásit</a></li>
+                    <li class="aktivni_registrace"><a href="{% url 'registrace' %}">Registrovat</a></li>
                 {% endif %}
             </ul>
         </nav>
     </header>
-    {% block content %}
 
+    {% block content %}
     {% endblock content %}
 </body>
 </html>
