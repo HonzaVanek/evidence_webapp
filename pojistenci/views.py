@@ -1,3 +1,4 @@
+from django.core.mail import send_mail, EmailMessage, EmailMultiAlternatives, get_connection
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate, EmailCampaign, EmailDelivery, EmailImage, ContactGroup
@@ -16,7 +17,6 @@ from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.views import LoginView
 from .forms import VlastniLoginForm, RegistraceForm
-from django.core.mail import send_mail, EmailMessage, EmailMultiAlternatives
 from django.template import Context, Template
 from django.template.loader import render_to_string
 from django.conf import settings
@@ -1276,6 +1276,26 @@ def rozesilac_contact_edit(request, contact_id):
     )
 
 
+def get_newsletter_connection():
+    """
+    Vrátí SMTP connection pro newsletter přes Brevo.
+    V devu používá console backend, v produkci Brevo SMTP.
+    """
+    if settings.APP_ENV == "prod":
+        return get_connection(
+            backend=settings.NEWSLETTER_EMAIL_BACKEND,
+            host=settings.NEWSLETTER_EMAIL_HOST,
+            port=settings.NEWSLETTER_EMAIL_PORT,
+            username=settings.NEWSLETTER_EMAIL_HOST_USER,
+            password=settings.NEWSLETTER_EMAIL_HOST_PASSWORD,
+            use_tls=settings.NEWSLETTER_EMAIL_USE_TLS,
+        )
+
+    return get_connection(
+        backend=settings.NEWSLETTER_EMAIL_BACKEND,
+    )
+
+
 @staff_member_required
 def rozesilac_send(request):
 
@@ -1289,7 +1309,7 @@ def rozesilac_send(request):
             test_email = form.cleaned_data.get("test_email")
             contacts = form.cleaned_data.get("contacts")
             note = form.cleaned_data.get("note", "")
-            from_email = form.cleaned_data.get("from_email") or settings.DEFAULT_FROM_EMAIL
+            from_email = form.cleaned_data.get("from_email") or settings.NEWSLETTER_DEFAULT_FROM_EMAIL
 
             is_test = send_mode == "test"
 
@@ -1330,6 +1350,8 @@ def rozesilac_send(request):
             # odesílání
             # --------------------------------------------------
 
+            newsletter_connection = get_newsletter_connection()
+
             for recipient in recipients:
 
                 delivery = EmailDelivery.objects.create(
@@ -1364,6 +1386,8 @@ def rozesilac_send(request):
                         body=rendered_text_body,
                         from_email=from_email,
                         to=[recipient["email"]],
+                        connection=newsletter_connection,
+                        reply_to=["info@liedersociety.cz"]
                     )
 
                     msg.attach_alternative(rendered_html_body, "text/html")

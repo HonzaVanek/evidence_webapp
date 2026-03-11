@@ -170,14 +170,13 @@ LOGOUT_REDIRECT_URL = '/login'
 
 # ---- EMAIL ----
 ALLOWED_FROM_EMAILS = [
-    ("info@lieder-society.cz", "Lieder Society"),
-    ("info@kekor.cz", "Kekor"),
-    ("noreply@kekor.cz", "Kekor no-reply"),
+    ("info@liedersociety.cz", "Lieder Society"),
+    ("newsletter@liedersociety.cz", "Newsletter Lieder Society")
 ]
 
 if APP_ENV == "prod":
     EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
-    DEFAULT_FROM_EMAIL = "info@lieder-society.cz"
+    DEFAULT_FROM_EMAIL = "info@liedersociety.cz"
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
     DEFAULT_FROM_EMAIL = "local@test.project"
@@ -189,3 +188,19 @@ ANYMAIL = {
 }
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # DEFAULT_FROM_EMAIL = 'defaultniemail@jenzmyhokompu.hungary'
+
+
+
+# spešl pro newsletter přes BREVO (https://app.brevo.com/settings/keys/smtp)
+
+if APP_ENV == "prod":
+    NEWSLETTER_EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    NEWSLETTER_EMAIL_HOST = "smtp-relay.brevo.com"
+    NEWSLETTER_EMAIL_PORT = 587
+    NEWSLETTER_EMAIL_HOST_USER = os.environ.get("BREVO_SMTP_LOGIN")
+    NEWSLETTER_EMAIL_HOST_PASSWORD = os.environ.get("BREVO_SMTP_KEY")
+    NEWSLETTER_EMAIL_USE_TLS = True
+    NEWSLETTER_DEFAULT_FROM_EMAIL = "newsletter@liedersociety.cz"
+else:
+    NEWSLETTER_EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    NEWSLETTER_DEFAULT_FROM_EMAIL = "newsletter@liedersociety.cz"
