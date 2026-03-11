@@ -97,6 +97,14 @@
   </div>
 </form>
 
+<div id="sending-overlay" class="sending-overlay" hidden>
+  <div class="sending-overlay__box">
+    <div class="sending-overlay__spinner" aria-hidden="true"></div>
+    <h3>Odesíláme e-maily</h3>
+    <p>Je to jízda, bombí se tam maily jeden za druhym, prosím čekej a nezavírej stránku.</p>
+  </div>
+</div>
+
 <div id="template-preview-modal" class="template-preview-modal" style="display:none;">
   <div class="template-preview-backdrop"></div>
 
@@ -135,6 +143,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const groupsRow = document.getElementById("groups-row");
   const contactsRow = document.getElementById("contacts-row");
   const form = document.getElementById("send-campaign-form");
+  const sendSubmitBtn = document.getElementById("send-submit-btn");
+  const sendingOverlay = document.getElementById("sending-overlay");
 
   const selectAllBtn = document.getElementById("select-all-contacts-btn");
   const deselectAllBtn = document.getElementById("deselect-all-contacts-btn");
@@ -145,6 +155,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const previewSubject = document.getElementById("preview-subject");
   const previewIframe = document.getElementById("template-preview-iframe");
   const templateSelect = document.getElementById("id_template");
+
+  let isSubmitting = false;
 
   // mapování kontakt_id -> skupiny
   const contactGroupMap = {
@@ -185,6 +197,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function closePreviewModal() {
     previewModal.style.display = "none";
+  }
+
+  function showSendingOverlay() {
+   if (sendingOverlay) {
+     sendingOverlay.hidden = false;
+    }
+
+   if (sendSubmitBtn) {
+     sendSubmitBtn.disabled = true;
+     sendSubmitBtn.textContent = "Odesílám...";
+    }
   }
 
   if (previewBtn) {
@@ -298,6 +321,11 @@ document.addEventListener("DOMContentLoaded", function () {
   updateVisibleContacts();
 
   form.addEventListener("submit", function (e) {
+    if (isSubmitting) {
+      e.preventDefault();
+      return;
+    }
+
     const mode = getSelectedMode();
 
     if (mode === "live") {
@@ -309,8 +337,11 @@ document.addEventListener("DOMContentLoaded", function () {
       const confirmed = confirm(`Opravdu chceš odeslat ostrou kampaň na ${checkedContacts} kontaktů?`);
       if (!confirmed) {
         e.preventDefault();
+        return;
       }
     }
+    isSubmitting = true;
+    showSendingOverlay();
   });
 });
 </script>
