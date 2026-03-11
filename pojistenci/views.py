@@ -1276,25 +1276,6 @@ def rozesilac_contact_edit(request, contact_id):
     )
 
 
-def get_newsletter_connection():
-    """
-    Vrátí SMTP connection pro newsletter přes Brevo.
-    V devu používá console backend, v produkci Brevo SMTP.
-    """
-    if settings.APP_ENV == "prod":
-        return get_connection(
-            backend=settings.NEWSLETTER_EMAIL_BACKEND,
-            host=settings.NEWSLETTER_EMAIL_HOST,
-            port=settings.NEWSLETTER_EMAIL_PORT,
-            username=settings.NEWSLETTER_EMAIL_HOST_USER,
-            password=settings.NEWSLETTER_EMAIL_HOST_PASSWORD,
-            use_tls=settings.NEWSLETTER_EMAIL_USE_TLS,
-        )
-
-    return get_connection(
-        backend=settings.NEWSLETTER_EMAIL_BACKEND,
-    )
-
 
 @staff_member_required
 def rozesilac_send(request):
@@ -1350,8 +1331,6 @@ def rozesilac_send(request):
             # odesílání
             # --------------------------------------------------
 
-            newsletter_connection = get_newsletter_connection()
-
             for recipient in recipients:
 
                 delivery = EmailDelivery.objects.create(
@@ -1381,18 +1360,64 @@ def rozesilac_send(request):
                     else:
                         rendered_text_body = "Tento email obsahuje HTML verzi zprávy."
 
-                    msg = EmailMultiAlternatives(
-                        subject=rendered_subject,
-                        body=rendered_text_body,
-                        from_email=from_email,
-                        to=[recipient["email"]],
-                        connection=newsletter_connection,
-                        reply_to=["info@liedersociety.cz"]
-                    )
+                    # --------------------------------------------------
+                    # DEV = klasický Django email backend
+                    # --------------------------------------------------
 
-                    msg.attach_alternative(rendered_html_body, "text/html")
+                    if settings.APP_ENV != "prod":
 
-                    msg.send(fail_silently=False)
+                        msg = EmailMultiAlternatives(
+                            subject=rendered_subject,
+                            body=rendered_text_body,
+                            from_email=from_email,
+                            to=[recipient["email"]],
+                            reply_to=["info@liedersociety.cz"],
+                        )
+
+                        msg.attach_alternative(rendered_html_body, "text/html")
+                        msg.send(fail_silently=False)
+
+                    # --------------------------------------------------
+                    # PROD = Brevo API
+                    # --------------------------------------------------
+
+                    else:
+
+                        payload = {
+                            "sender": {
+                                "email": from_email,
+                                "name": "Lieder Society",
+                            },
+                            "to": [
+                                {
+                                    "email": recipient["email"],
+                                    "name": recipient["name"] or "",
+                                }
+                            ],
+                            "subject": rendered_subject,
+                            "htmlContent": rendered_html_body,
+                            "textContent": rendered_text_body,
+                            "replyTo": {
+                                "email": "info@liedersociety.cz",
+                                "name": "Lieder Society",
+                            },
+                        }
+
+                        headers = {
+                            "accept": "application/json",
+                            "api-key": settings.BREVO_API_KEY,
+                            "content-type": "application/json",
+                        }
+
+                        response = requests.post(
+                            settings.BREVO_API_URL,
+                            json=payload,
+                            headers=headers,
+                            timeout=20,
+                        )
+
+                        if response.status_code >= 400:
+                            raise Exception(f"Brevo error {response.status_code}: {response.text}")
 
                     delivery.status = "sent"
                     delivery.sent_at = timezone.now()

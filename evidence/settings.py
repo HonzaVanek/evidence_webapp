@@ -194,13 +194,13 @@ ANYMAIL = {
 # spešl pro newsletter přes BREVO (https://app.brevo.com/settings/keys/smtp)
 
 if APP_ENV == "prod":
-    NEWSLETTER_EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    NEWSLETTER_EMAIL_HOST = "smtp-relay.brevo.com"
-    NEWSLETTER_EMAIL_PORT = 587
-    NEWSLETTER_EMAIL_HOST_USER = os.environ.get("BREVO_SMTP_LOGIN")
-    NEWSLETTER_EMAIL_HOST_PASSWORD = os.environ.get("BREVO_SMTP_KEY")
-    NEWSLETTER_EMAIL_USE_TLS = True
+    BREVO_API_KEY = os.environ.get("BREVO_API_KEY")
+    BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
     NEWSLETTER_DEFAULT_FROM_EMAIL = "newsletter@liedersociety.cz"
 else:
     NEWSLETTER_EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
     NEWSLETTER_DEFAULT_FROM_EMAIL = "newsletter@liedersociety.cz"
+
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY")
+BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
+NEWSLETTER_DEFAULT_FROM_EMAIL = "newsletter@liedersociety.cz"
