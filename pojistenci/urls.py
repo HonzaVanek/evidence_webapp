@@ -50,4 +50,5 @@ urlpatterns = [
     path("pojistenci/vychytavky/rozesilac/kampane/", views.rozesilac_campaigns, name="rozesilac_campaigns"),
     path("pojistenci/vychytavky/rozesilac/obrazky/", views.rozesilac_images, name="rozesilac_images"),
     path("pojistenci/vychytavky/rozesilac/obrazky/upload/", views.rozesilac_image_upload, name="rozesilac_image_upload"),
+    path("pojistenci/vychytavky/rozesilac/unsubscribe/<uuid:token>/", views.unsubscribe_view, name="rozesilac_unsubscribe"),
 ]

@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import FileExtensionValidator
 from django.core.exceptions import ValidationError
 from django.conf import settings
+import uuid
 
 def validate_image_size(image):
     max_size_mb = 3
@@ -65,6 +66,7 @@ class Contact(models.Model):
         related_name="contacts",
         verbose_name="Skupiny",
     )
+    unsubscribe_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     def __str__(self) -> str:
         return f"{self.name} <{self.email}>" if self.name else self.email

@@ -1,4 +1,6 @@
 from django.core.mail import send_mail, EmailMessage, EmailMultiAlternatives, get_connection
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate, EmailCampaign, EmailDelivery, EmailImage, ContactGroup
@@ -25,8 +27,6 @@ import requests
 from django.db import transaction, IntegrityError
 from django.db.models import Q, Sum
 from django import forms
-from django.core.validators import validate_email
-from django.core.exceptions import ValidationError
 from rest_framework import viewsets
 from .serializers import PojistenecSerializer
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -1327,6 +1327,9 @@ def rozesilac_send(request):
             sent_count = 0
             failed_count = 0
 
+            # základ domény pro generování absolutních URL
+            base_url = f"{request.scheme}://{request.get_host()}"
+
             # --------------------------------------------------
             # odesílání
             # --------------------------------------------------
@@ -1341,14 +1344,20 @@ def rozesilac_send(request):
                 )
 
                 try:
-
                     contact = recipient.get("contact")
                     osloveni = get_contact_salutation(contact) if contact else recipient["email"]
+
+                    if contact:
+                        unsubscribe_path = reverse("rozesilac_unsubscribe", args=[contact.unsubscribe_token],)
+                        unsubscribe_url = f"{base_url}{unsubscribe_path}"
+                    else:
+                        unsubscribe_url = ""
 
                     template_context = Context({
                         "osloveni": osloveni,
                         "jmeno": contact.name if contact and contact.name else "",
                         "email": recipient["email"],
+                        "unsubscribe_url": unsubscribe_url,
                     })
 
                     rendered_subject = Template(campaign.subject).render(template_context)
@@ -1585,3 +1594,20 @@ def rozesilac_image_upload(request):
                 messages.error(request, error)
 
     return redirect(next_url)
+
+
+def unsubscribe_view(request, token):
+    contact = get_object_or_404(Contact, unsubscribe_token=token)
+    if request.method == "POST":
+        if contact.is_active:
+            contact.is_active = False
+            contact.save()
+            send_mail(
+                subject="Odhlášení z odběru newsletteru",
+                message=f"Tohle je automatická zpráva z Vaňkova super rozesílače. Chci oznámit, že kontakt {contact.email} se odhlásil/a z odběru Lieder newsletteru. V rozesílači bude teď tento kontakt označen jako neaktivní (ale z kontaktů se nesmazal).",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=["newsletter@liedersociety.cz"],
+                fail_silently=True,
+            )
+        return render(request, "pojistenci/rozesilac/unsubscribe_done.html", {"contact": contact})
+    return render(request, "pojistenci/rozesilac/unsubscribe_confirm.html", {"contact": contact})
