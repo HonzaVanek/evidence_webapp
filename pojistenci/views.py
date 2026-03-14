@@ -1367,7 +1367,7 @@ def add_click_tracking_to_html(html_content: str, delivery, base_url: str) -> st
 
     return pattern.sub(replace_href, html_content)
 
-def find_recent_duplicate_click(delivery, target_url, now, window_seconds=5):
+def find_recent_same_url_click(delivery, target_url, now, window_seconds=30):
     threshold = now - timedelta(seconds=window_seconds)
 
     return EmailClickEvent.objects.filter(
@@ -1375,6 +1375,12 @@ def find_recent_duplicate_click(delivery, target_url, now, window_seconds=5):
         original_url=target_url,
         created_at__gte=threshold,
     ).order_by("-created_at").first()
+
+def has_any_previous_click_for_url(delivery, target_url):
+    return EmailClickEvent.objects.filter(
+        delivery=delivery,
+        original_url=target_url,
+    ).exists()
 
 # samotné trackování kliků - tento view bude cílem všech odkazů v rozesílaných emailech, a bude zaznamenávat kliknutí do databáze a pak přesměrovávat uživatele na původní URL
 def rozesilac_click_tracking(request, token):
@@ -1389,16 +1395,29 @@ def rozesilac_click_tracking(request, token):
     now = timezone.now()
     user_agent = request.META.get("HTTP_USER_AGENT", "")
     ip_address = get_client_ip(request)
-    suspected_bot = is_suspected_bot_click(delivery, user_agent, now)
 
-    recent_duplicate = find_recent_duplicate_click(
+    had_previous_click_for_url = has_any_previous_click_for_url(delivery, target_url)
+
+    recent_same_url_click = find_recent_same_url_click(
         delivery=delivery,
         target_url=target_url,
         now=now,
-        window_seconds=5,
+        window_seconds=30,
     )
 
-    is_duplicate = recent_duplicate is not None
+    is_duplicate = had_previous_click_for_url
+
+    suspected_bot = is_suspected_bot_click(delivery, user_agent, now)
+
+    if recent_same_url_click:
+        previous_ua = (recent_same_url_click.user_agent or "").strip()
+        previous_ip = (recent_same_url_click.ip_address or "").strip()
+
+        current_ua = (user_agent or "").strip()
+        current_ip = (ip_address or "").strip()
+
+        if previous_ua != current_ua or previous_ip != current_ip:
+            suspected_bot = True
 
     update_fields = ["click_count"]
     delivery.click_count += 1
@@ -1407,8 +1426,8 @@ def rozesilac_click_tracking(request, token):
         delivery.clicked_at = now
         update_fields.append("clicked_at")
 
-    # unikátní klik započítáme jen pokud to není deduplikační dvoják
-    if not is_duplicate:
+    # unikátní klik počítáme jen jednou pro každou URL v rámci delivery
+    if not had_previous_click_for_url:
         delivery.unique_click_count += 1
         update_fields.append("unique_click_count")
 
@@ -1419,7 +1438,7 @@ def rozesilac_click_tracking(request, token):
         original_url=target_url,
         user_agent=user_agent,
         ip_address=ip_address,
-        is_suspected_bot=suspected_bot or is_duplicate,
+        is_suspected_bot=suspected_bot,
         is_duplicate=is_duplicate,
     )
 
