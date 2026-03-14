@@ -31,6 +31,11 @@
   <p><strong>Ve frontě:</strong> {{ queued_count }}</p>
 </div>
 
+<div class="template-form-row">
+  <p><strong>Doručení s klikem:</strong> {{ clicked_delivery_count }}</p>
+  <p><strong>Celkem kliků:</strong> {{ total_click_count }}</p>
+</div>
+
 <h3>Doručení</h3>
 
 {% if deliveries %}
@@ -41,6 +46,9 @@
         <th>Jméno</th>
         <th>Status</th>
         <th>Odesláno</th>
+        <th>Kliknuto</th>
+        <th>Počet kliků</th>
+        <th>První klik</th>
         <th>Chyba</th>
       </tr>
     </thead>
@@ -53,6 +61,21 @@
           <td>
             {% if d.sent_at %}
               {{ d.sent_at|date:"d.m.Y H:i:s" }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>
+            {% if d.click_count > 0 %}
+              ✓
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>{{ d.click_count }}</td>
+          <td>
+            {% if d.clicked_at %}
+              {{ d.clicked_at|date:"d.m.Y H:i:s" }}
             {% else %}
               -
             {% endif %}

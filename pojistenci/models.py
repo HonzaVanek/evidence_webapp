@@ -3,6 +3,7 @@ from django.core.validators import FileExtensionValidator
 from django.core.exceptions import ValidationError
 from django.conf import settings
 import uuid
+import secrets
 
 def validate_image_size(image):
     max_size_mb = 3
@@ -101,13 +102,8 @@ class EmailCampaign(models.Model):
     def __str__(self) -> str:
         return f"{'TEST ' if self.is_test else ''}{self.subject} ({self.created_at:%Y-%m-%d %H:%M})"
 
-
 class EmailDelivery(models.Model):
-    STATUS_CHOICES = [
-        ("queued", "Queued"),
-        ("sent", "Sent"),
-        ("failed", "Failed"),
-    ]
+    STATUS_CHOICES = [("queued", "Queued"), ("sent", "Sent"), ("failed", "Failed"),]
     campaign = models.ForeignKey(EmailCampaign, on_delete=models.CASCADE, related_name="deliveries")
     to_email = models.EmailField()
     to_name = models.CharField(max_length=200, blank=True)
@@ -118,14 +114,38 @@ class EmailDelivery(models.Model):
     sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    tracking_token = models.CharField(max_length=64, unique=True, db_index=True, blank=True)
+    clicked_at = models.DateTimeField(null=True, blank=True)
+    click_count = models.PositiveIntegerField(default=0)
+
     class Meta:
-        indexes = [
-            models.Index(fields=["campaign", "status"]),
-            models.Index(fields=["to_email"]),
-        ]
+        indexes = [models.Index(fields=["campaign", "status"]), models.Index(fields=["to_email"]),]
+
+    def save(self, *args, **kwargs):
+        if not self.tracking_token:
+            self.tracking_token = secrets.token_urlsafe(32)
+        super().save(*args, **kwargs)    
 
     def __str__(self) -> str:
         return f"{self.to_email} - {self.status}"
+
+class EmailClickEvent(models.Model):
+    delivery = models.ForeignKey(
+        EmailDelivery,
+        on_delete=models.CASCADE,
+        related_name="click_events",
+    )
+    original_url = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    user_agent = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.delivery.to_email} -> {self.original_url}"
+
 
 
 # model pro ukládání obrázků, které můžeme vkládat do rozesílače emailů (abychom nemuseli používat externí hosting a riskovat, že se nám obrázky ztratí):

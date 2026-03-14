@@ -3,7 +3,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate, EmailCampaign, EmailDelivery, EmailImage, ContactGroup
+from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate, EmailCampaign, EmailDelivery, EmailImage, ContactGroup, EmailClickEvent
 from .forms import PojistenecForm, PojisteniForm, TypPojisteniForm, BulkUploadForm, RegistraceForm, ContactForm, ContactImportForm, EmailTemplateForm, SendCampaignForm, EmailImageUploadForm, ContactGroupForm
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseForbidden
 from django.contrib import messages
@@ -41,6 +41,9 @@ from matplotlib.patches import Wedge
 from matplotlib.path import Path
 import csv
 from io import TextIOWrapper
+import html
+import re
+from urllib.parse import quote, unquote, urlparse
 
 
 # Create your views here.
@@ -1277,6 +1280,92 @@ def rozesilac_contact_edit(request, contact_id):
 
 
 
+# pomocné funkce pro tracking kampaní a odesílání emailů:
+def is_trackable_url(url: str) -> bool:
+    if not url:
+        return False
+
+    parsed = urlparse(url.strip())
+
+    if parsed.scheme not in {"http", "https"}:
+        return False
+
+    if not parsed.netloc:
+        return False
+
+    lowered = url.lower()
+    if "unsubscribe" in lowered:
+        return False
+
+    return True
+
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded_for:
+        return x_forwarded_for.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR")
+
+
+def add_click_tracking_to_html(html_content: str, delivery, base_url: str) -> str:
+    """
+    Přepíše všechny <a href="http(s)://..."> odkazy tak,
+    aby vedly přes náš tracking redirect.
+    """
+    if not html_content:
+        return html_content
+
+    click_base = f"{base_url}{reverse('rozesilac_click_tracking', args=[delivery.tracking_token])}"
+
+    pattern = re.compile(
+        r'(<a\b[^>]*\bhref=)(["\'])(.*?)\2',
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    def replace_href(match):
+        prefix, quote_char, original_href = match.groups()
+
+        original_href = html.unescape(original_href.strip())
+
+        if not is_trackable_url(original_href):
+            return match.group(0)
+
+        tracked_url = f"{click_base}?url={quote(original_href, safe='')}"
+        return f"{prefix}{quote_char}{tracked_url}{quote_char}"
+
+    return pattern.sub(replace_href, html_content)
+
+# samotné trackování kliků - tento view bude cílem všech odkazů v rozesílaných emailech, a bude zaznamenávat kliknutí do databáze a pak přesměrovávat uživatele na původní URL
+def rozesilac_click_tracking(request, token):
+    delivery = get_object_or_404(EmailDelivery, tracking_token=token)
+
+    target_url = request.GET.get("url", "").strip()
+    target_url = html.unescape(unquote(target_url))
+
+    if not is_trackable_url(target_url):
+        return redirect("/")
+
+    now = timezone.now()
+
+    update_fields = ["click_count"]
+    delivery.click_count += 1
+
+    if not delivery.clicked_at:
+        delivery.clicked_at = now
+        update_fields.append("clicked_at")
+
+    delivery.save(update_fields=update_fields)
+
+    EmailClickEvent.objects.create(
+        delivery=delivery,
+        original_url=target_url,
+        user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        ip_address=get_client_ip(request),
+    )
+
+    return redirect(target_url)
+
+
 @staff_member_required
 def rozesilac_send(request):
 
@@ -1362,6 +1451,9 @@ def rozesilac_send(request):
 
                     rendered_subject = Template(campaign.subject).render(template_context)
                     rendered_html_body = Template(campaign.html_body).render(template_context)
+
+                     # přepsání odkazů na trackovací redirect
+                    rendered_html_body = add_click_tracking_to_html(rendered_html_body, delivery, base_url)
 
                     text_template = campaign.text_body.strip() if campaign.text_body else ""
                     if text_template:
@@ -1482,6 +1574,9 @@ def rozesilac_campaign_detail(request, campaign_id):
     failed_count = deliveries.filter(status="failed").count()
     queued_count = deliveries.filter(status="queued").count()
 
+    clicked_delivery_count = deliveries.filter(click_count__gt=0).count()
+    total_click_count = deliveries.aggregate(total=Sum("click_count"))["total"] or 0
+
     return render(
         request,
         "pojistenci/rozesilac/campaign_detail.html",
@@ -1491,6 +1586,8 @@ def rozesilac_campaign_detail(request, campaign_id):
             "sent_count": sent_count,
             "failed_count": failed_count,
             "queued_count": queued_count,
+            "clicked_delivery_count": clicked_delivery_count,
+            "total_click_count": total_click_count,
         },
     )
 
