@@ -1395,6 +1395,42 @@ def has_any_previous_click_for_url(delivery, target_url):
         original_url=target_url,
     ).exists()
 
+def mark_recent_burst_as_suspicious(delivery, now, window_seconds=8, min_distinct_urls=3):
+    """
+    Pokud během krátkého okna přišlo pro stejné delivery více různých URL
+    ze stejné IP a stejného user-agentu, označíme tyto eventy jako podezřelé.
+    """
+    threshold = now - timedelta(seconds=window_seconds)
+
+    recent_events = list(
+        EmailClickEvent.objects.filter(
+            delivery=delivery,
+            created_at__gte=threshold,
+        ).order_by("created_at")
+    )
+
+    groups = {}
+
+    for e in recent_events:
+        key = (
+            (e.ip_address or "").strip(),
+            (e.user_agent or "").strip(),
+        )
+        groups.setdefault(key, []).append(e)
+
+    changed = False
+
+    for key, events in groups.items():
+        distinct_urls = {e.original_url for e in events}
+        if len(distinct_urls) >= min_distinct_urls:
+            for e in events:
+                if not e.is_suspected_bot:
+                    e.is_suspected_bot = True
+                    e.save(update_fields=["is_suspected_bot"])
+                    changed = True
+
+    return changed
+
 # samotné trackování kliků - tento view bude cílem všech odkazů v rozesílaných emailech, a bude zaznamenávat kliknutí do databáze a pak přesměrovávat uživatele na původní URL
 def rozesilac_click_tracking(request, token):
     delivery = get_object_or_404(EmailDelivery, tracking_token=token)
@@ -1432,7 +1468,7 @@ def rozesilac_click_tracking(request, token):
 
     delivery.save(update_fields=update_fields)
 
-    EmailClickEvent.objects.create(
+    created_event = EmailClickEvent.objects.create(
         delivery=delivery,
         original_url=target_url,
         user_agent=user_agent,
@@ -1441,6 +1477,19 @@ def rozesilac_click_tracking(request, token):
         is_duplicate=is_duplicate,
     )
 
+    # --------------------------------------------------
+    # Burst detekce:
+    # pokud během pár sekund stejné delivery projede více různých URL
+    # ze stejné IP a stejného UA, je to téměř jistě scanner.
+    # Označíme zpětně celý burst jako podezřelý.
+    # --------------------------------------------------
+    mark_recent_burst_as_suspicious(
+        delivery=delivery,
+        now=now,
+        window_seconds=8,
+        min_distinct_urls=3,
+    )
+    
     return redirect(target_url)
 
 
