@@ -25,7 +25,7 @@ from django.conf import settings
 from openpyxl import load_workbook, Workbook
 import requests
 from django.db import transaction, IntegrityError
-from django.db.models import Q, Sum, Count, Exists, OuterRef
+from django.db.models import Q, Sum, Count, Exists, OuterRef, Prefetch
 from django import forms
 from rest_framework import viewsets
 from .serializers import PojistenecSerializer
@@ -36,8 +36,7 @@ import os
 import matplotlib
 matplotlib.use("Agg") 
 import matplotlib.pyplot as plt
-from matplotlib.patches import PathPatch
-from matplotlib.patches import Wedge
+from matplotlib.patches import PathPatch, Wedge
 from matplotlib.path import Path
 import csv
 from io import TextIOWrapper
@@ -1644,6 +1643,8 @@ def rozesilac_send(request):
     )
 
 
+from django.db.models import Exists, OuterRef, Prefetch, Sum
+
 @staff_member_required
 def rozesilac_campaign_detail(request, campaign_id):
     campaign = get_object_or_404(EmailCampaign, id=campaign_id)
@@ -1658,29 +1659,53 @@ def rozesilac_campaign_detail(request, campaign_id):
         is_suspected_bot=True,
     )
 
-    deliveries = campaign.deliveries.all().order_by("created_at").annotate(
-        has_human_like_click=Exists(human_clicks_subquery),
-        has_suspected_bot_click=Exists(bot_clicks_subquery),
+    deliveries = (
+        campaign.deliveries.all()
+        .order_by("created_at")
+        .annotate(
+            has_human_like_click=Exists(human_clicks_subquery),
+            has_suspected_bot_click=Exists(bot_clicks_subquery),
+        )
+        .prefetch_related(
+            Prefetch(
+                "click_events",
+                queryset=EmailClickEvent.objects.order_by("created_at"),
+            )
+        )
     )
 
     sent_count = deliveries.filter(status="sent").count()
     failed_count = deliveries.filter(status="failed").count()
     queued_count = deliveries.filter(status="queued").count()
 
-    clicked_delivery_count = deliveries.filter(click_count__gt=0).count()
-    unique_clicked_delivery_count = deliveries.filter(unique_click_count__gt=0).count()
-
-    total_click_count = deliveries.aggregate(total=Sum("click_count"))["total"] or 0
+    clicked_delivery_count = deliveries.filter(unique_click_count__gt=0).count()
     total_unique_click_count = deliveries.aggregate(total=Sum("unique_click_count"))["total"] or 0
 
     click_events = EmailClickEvent.objects.filter(delivery__campaign=campaign)
 
     suspected_bot_click_count = click_events.filter(is_suspected_bot=True).count()
     human_like_click_count = click_events.filter(is_suspected_bot=False).count()
-    duplicate_click_count = click_events.filter(is_duplicate=True).count()
 
     suspected_bot_delivery_count = deliveries.filter(has_suspected_bot_click=True).count()
     human_like_delivery_count = deliveries.filter(has_human_like_click=True).count()
+
+    # dopočítáme data pro pohodlné zobrazení v šabloně
+    for delivery in deliveries:
+        all_events = list(delivery.click_events.all())
+
+        human_events = [e for e in all_events if not e.is_suspected_bot]
+        unique_urls = []
+        seen_urls = set()
+
+        for e in human_events:
+            if e.original_url not in seen_urls:
+                seen_urls.add(e.original_url)
+                unique_urls.append(e.original_url)
+
+        delivery.human_click_events_for_ui = human_events
+        delivery.clicked_urls_for_ui = unique_urls
+        delivery.first_human_click_at_for_ui = human_events[0].created_at if human_events else None
+        delivery.last_human_click_at_for_ui = human_events[-1].created_at if human_events else None
 
     return render(
         request,
@@ -1692,12 +1717,9 @@ def rozesilac_campaign_detail(request, campaign_id):
             "failed_count": failed_count,
             "queued_count": queued_count,
             "clicked_delivery_count": clicked_delivery_count,
-            "unique_clicked_delivery_count": unique_clicked_delivery_count,
-            "total_click_count": total_click_count,
             "total_unique_click_count": total_unique_click_count,
             "suspected_bot_click_count": suspected_bot_click_count,
             "human_like_click_count": human_like_click_count,
-            "duplicate_click_count": duplicate_click_count,
             "suspected_bot_delivery_count": suspected_bot_delivery_count,
             "human_like_delivery_count": human_like_delivery_count,
         },

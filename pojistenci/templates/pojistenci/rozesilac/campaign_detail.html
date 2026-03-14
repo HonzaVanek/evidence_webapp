@@ -32,21 +32,8 @@
 </div>
 
 <div class="template-form-row">
-  <p><strong>Doručení s nějakým requestem:</strong> {{ clicked_delivery_count }}</p>
-  <p><strong>Doručení s unikátním klikem:</strong> {{ unique_clicked_delivery_count }}</p>
-  <p><strong>Requesty celkem:</strong> {{ total_click_count }}</p>
+  <p><strong>Doručení s klikem:</strong> {{ clicked_delivery_count }}</p>
   <p><strong>Unikátní kliky celkem:</strong> {{ total_unique_click_count }}</p>
-</div>
-
-<div class="template-form-row">
-  <p><strong>Nepodezřelé kliky:</strong> {{ human_like_click_count }}</p>
-  <p><strong>Podezřelé kliky:</strong> {{ suspected_bot_click_count }}</p>
-  <p><strong>Z toho deduplikované:</strong> {{ duplicate_click_count }}</p>
-</div>
-
-<div class="template-form-row">
-  <p><strong>Doručení s nepodezřelým klikem:</strong> {{ human_like_delivery_count }}</p>
-  <p><strong>Doručení s podezřelým klikem:</strong> {{ suspected_bot_delivery_count }}</p>
 </div>
 
 <h3>Doručení</h3>
@@ -59,11 +46,12 @@
         <th>Jméno</th>
         <th>Status</th>
         <th>Odesláno</th>
-        <th>Requesty</th>
+        <th>Kliknul</th>
         <th>Unikátní kliky</th>
-        <th>První request</th>
-        <th>Nepodezřelý klik</th>
-        <th>Podezřelý klik</th>
+        <th>První klik</th>
+        <th>Poslední klik</th>
+        <th>Kliknuté URL</th>
+        <th>Detail</th>
         <th>Chyba</th>
       </tr>
     </thead>
@@ -80,28 +68,85 @@
               -
             {% endif %}
           </td>
-          <td>{{ d.click_count }}</td>
-          <td>{{ d.unique_click_count }}</td>
           <td>
-            {% if d.clicked_at %}
-              {{ d.clicked_at|date:"d.m.Y H:i:s" }}
-            {% else %}
-              -
-            {% endif %}
-          </td>
-          <td>
-            {% if d.has_human_like_click %}
+            {% if d.unique_click_count > 0 %}
               ✓
             {% else %}
               -
             {% endif %}
           </td>
+          <td>{{ d.unique_click_count }}</td>
           <td>
-            {% if d.has_suspected_bot_click %}
-              ⚠
+            {% if d.first_human_click_at_for_ui %}
+              {{ d.first_human_click_at_for_ui|date:"d.m.Y H:i:s" }}
             {% else %}
               -
             {% endif %}
+          </td>
+          <td>
+            {% if d.last_human_click_at_for_ui %}
+              {{ d.last_human_click_at_for_ui|date:"d.m.Y H:i:s" }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>
+            {% if d.clicked_urls_for_ui %}
+              <ul style="margin: 0; padding-left: 18px;">
+                {% for url in d.clicked_urls_for_ui %}
+                  <li style="margin-bottom: 4px; word-break: break-word;">
+                    <a href="{{ url }}" target="_blank" rel="noopener">{{ url }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>
+            <details>
+              <summary>Zobrazit</summary>
+              <div style="margin-top: 10px; min-width: 420px;">
+                <p><strong>Technické requesty celkem:</strong> {{ d.click_count }}</p>
+                <p><strong>Nepodezřelý klik:</strong> {% if d.has_human_like_click %}ano{% else %}ne{% endif %}</p>
+                <p><strong>Podezřelý klik:</strong> {% if d.has_suspected_bot_click %}ano{% else %}ne{% endif %}</p>
+
+                {% if d.click_events.all %}
+                  <table class="table" style="margin-top: 10px;">
+                    <thead>
+                      <tr>
+                        <th>Čas</th>
+                        <th>URL</th>
+                        <th>Podezřelý</th>
+                        <th>Duplicitní</th>
+                        <th>IP</th>
+                        <th>User-Agent</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for e in d.click_events.all %}
+                        <tr>
+                          <td>{{ e.created_at|date:"d.m.Y H:i:s" }}</td>
+                          <td style="word-break: break-word;">
+                            <a href="{{ e.original_url }}" target="_blank" rel="noopener">
+                              {{ e.original_url }}
+                            </a>
+                          </td>
+                          <td>{% if e.is_suspected_bot %}ano{% else %}ne{% endif %}</td>
+                          <td>{% if e.is_duplicate %}ano{% else %}ne{% endif %}</td>
+                          <td>{{ e.ip_address|default:"-" }}</td>
+                          <td style="word-break: break-word;">{{ e.user_agent|default:"-" }}</td>
+                        </tr>
+                      {% empty %}
+                        <tr>
+                          <td colspan="6">Žádné klik eventy.</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                {% endif %}
+              </div>
+            </details>
           </td>
           <td>{{ d.error|default:"-" }}</td>
         </tr>
@@ -111,4 +156,11 @@
 {% else %}
   <p class="muted">K této kampani zatím nejsou žádná doručení.</p>
 {% endif %}
+
+<div class="template-form-row" style="margin-top: 20px;">
+  <p><strong>Nepodezřelé kliky celkem:</strong> {{ human_like_click_count }}</p>
+  <p><strong>Podezřelé kliky celkem:</strong> {{ suspected_bot_click_count }}</p>
+  <p><strong>Doručení s nepodezřelým klikem:</strong> {{ human_like_delivery_count }}</p>
+  <p><strong>Doručení s podezřelým klikem:</strong> {{ suspected_bot_delivery_count }}</p>
+</div>
 {% endblock rozesilac_content %}
