@@ -32,8 +32,15 @@
 </div>
 
 <div class="template-form-row">
-  <p><strong>Doručení s klikem:</strong> {{ clicked_delivery_count }}</p>
+  <p><strong>Doručení s nějakým klikem:</strong> {{ clicked_delivery_count }}</p>
   <p><strong>Celkem kliků:</strong> {{ total_click_count }}</p>
+</div>
+
+<div class="template-form-row">
+  <p><strong>Doručení s nepodezřelým klikem:</strong> {{ human_like_delivery_count }}</p>
+  <p><strong>Nepodezřelé kliky:</strong> {{ human_like_click_count }}</p>
+  <p><strong>Doručení s podezřelým klikem:</strong> {{ suspected_bot_delivery_count }}</p>
+  <p><strong>Podezřelé kliky:</strong> {{ suspected_bot_click_count }}</p>
 </div>
 
 <h3>Doručení</h3>
@@ -46,9 +53,11 @@
         <th>Jméno</th>
         <th>Status</th>
         <th>Odesláno</th>
-        <th>Kliknuto</th>
+        <th>Nějaký klik</th>
         <th>Počet kliků</th>
         <th>První klik</th>
+        <th>Nepodezřelý klik</th>
+        <th>Podezřelý klik</th>
         <th>Chyba</th>
       </tr>
     </thead>
@@ -76,6 +85,20 @@
           <td>
             {% if d.clicked_at %}
               {{ d.clicked_at|date:"d.m.Y H:i:s" }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>
+            {% if d.has_human_like_click %}
+              ✓
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>
+            {% if d.has_suspected_bot_click %}
+              ⚠
             {% else %}
               -
             {% endif %}

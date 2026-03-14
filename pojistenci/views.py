@@ -25,7 +25,7 @@ from django.conf import settings
 from openpyxl import load_workbook, Workbook
 import requests
 from django.db import transaction, IntegrityError
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Count, Exists, OuterRef
 from django import forms
 from rest_framework import viewsets
 from .serializers import PojistenecSerializer
@@ -1307,6 +1307,36 @@ def get_client_ip(request):
     return request.META.get("REMOTE_ADDR")
 
 
+def is_suspected_bot_click(delivery, user_agent: str, event_time):
+    ua = (user_agent or "").lower()
+
+    suspicious_markers = [
+        "microsoft",
+        "safelinks",
+        "defender",
+        "exchange",
+        "outlook",
+        "urlscan",
+        "crawler",
+        "bot",
+        "spider",
+        "bingpreview",
+    ]
+
+    if any(marker in ua for marker in suspicious_markers):
+        return True
+
+    if delivery.sent_at:
+        diff = (event_time - delivery.sent_at).total_seconds()
+
+        if diff < 0:
+            return True
+
+        if diff <= 60:
+            return True
+
+    return False
+
 def add_click_tracking_to_html(html_content: str, delivery, base_url: str) -> str:
     """
     Přepíše všechny <a href="http(s)://..."> odkazy tak,
@@ -1346,6 +1376,8 @@ def rozesilac_click_tracking(request, token):
         return redirect("/")
 
     now = timezone.now()
+    user_agent = request.META.get("HTTP_USER_AGENT", "")
+    suspected_bot = is_suspected_bot_click(delivery, user_agent, now)
 
     update_fields = ["click_count"]
     delivery.click_count += 1
@@ -1359,8 +1391,9 @@ def rozesilac_click_tracking(request, token):
     EmailClickEvent.objects.create(
         delivery=delivery,
         original_url=target_url,
-        user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        user_agent=user_agent,
         ip_address=get_client_ip(request),
+        is_suspected_bot=suspected_bot,
     )
 
     return redirect(target_url)
@@ -1568,7 +1601,21 @@ def rozesilac_send(request):
 @staff_member_required
 def rozesilac_campaign_detail(request, campaign_id):
     campaign = get_object_or_404(EmailCampaign, id=campaign_id)
-    deliveries = campaign.deliveries.all().order_by("created_at")
+
+    human_clicks_subquery = EmailClickEvent.objects.filter(
+        delivery=OuterRef("pk"),
+        is_suspected_bot=False,
+    )
+
+    bot_clicks_subquery = EmailClickEvent.objects.filter(
+        delivery=OuterRef("pk"),
+        is_suspected_bot=True,
+    )
+
+    deliveries = campaign.deliveries.all().order_by("created_at").annotate(
+        has_human_like_click=Exists(human_clicks_subquery),
+        has_suspected_bot_click=Exists(bot_clicks_subquery),
+    )
 
     sent_count = deliveries.filter(status="sent").count()
     failed_count = deliveries.filter(status="failed").count()
@@ -1576,6 +1623,14 @@ def rozesilac_campaign_detail(request, campaign_id):
 
     clicked_delivery_count = deliveries.filter(click_count__gt=0).count()
     total_click_count = deliveries.aggregate(total=Sum("click_count"))["total"] or 0
+
+    click_events = EmailClickEvent.objects.filter(delivery__campaign=campaign)
+
+    suspected_bot_click_count = click_events.filter(is_suspected_bot=True).count()
+    human_like_click_count = click_events.filter(is_suspected_bot=False).count()
+
+    suspected_bot_delivery_count = deliveries.filter(has_suspected_bot_click=True).count()
+    human_like_delivery_count = deliveries.filter(has_human_like_click=True).count()
 
     return render(
         request,
@@ -1588,6 +1643,10 @@ def rozesilac_campaign_detail(request, campaign_id):
             "queued_count": queued_count,
             "clicked_delivery_count": clicked_delivery_count,
             "total_click_count": total_click_count,
+            "suspected_bot_click_count": suspected_bot_click_count,
+            "human_like_click_count": human_like_click_count,
+            "suspected_bot_delivery_count": suspected_bot_delivery_count,
+            "human_like_delivery_count": human_like_delivery_count,
         },
     )
 

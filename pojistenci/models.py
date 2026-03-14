@@ -139,6 +139,7 @@ class EmailClickEvent(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     user_agent = models.TextField(blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
+    is_suspected_bot = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]
