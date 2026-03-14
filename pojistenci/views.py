@@ -3,7 +3,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate, EmailCampaign, EmailDelivery, EmailImage, ContactGroup, EmailClickEvent
+from .models import Pojistenec, Pojisteni, TypPojisteni, Contact, EmailTemplate, EmailCampaign, EmailDelivery, EmailImage, ContactGroup, EmailClickEvent, EmailCampaignTrackedLink
 from .forms import PojistenecForm, PojisteniForm, TypPojisteniForm, BulkUploadForm, RegistraceForm, ContactForm, ContactImportForm, EmailTemplateForm, SendCampaignForm, EmailImageUploadForm, ContactGroupForm
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseForbidden
 from django.contrib import messages
@@ -44,6 +44,7 @@ import html
 import re
 from urllib.parse import quote, unquote, urlparse
 from datetime import timedelta
+from collections import Counter
 
 
 # Create your views here.
@@ -1341,15 +1342,18 @@ def is_suspected_bot_click(delivery, user_agent: str, event_time):
 
     return False
 
-def add_click_tracking_to_html(html_content: str, delivery, base_url: str) -> str:
+def add_click_tracking_to_html(html_content: str, delivery, base_url: str):
     """
     Přepíše všechny <a href="http(s)://..."> odkazy tak,
     aby vedly přes náš tracking redirect.
+    Zároveň vrátí seznam původních trackovaných URL.
     """
     if not html_content:
-        return html_content
+        return html_content, []
 
     click_base = f"{base_url}{reverse('rozesilac_click_tracking', args=[delivery.tracking_token])}"
+
+    tracked_urls = []
 
     pattern = re.compile(
         r'(<a\b[^>]*\bhref=)(["\'])(.*?)\2',
@@ -1364,10 +1368,17 @@ def add_click_tracking_to_html(html_content: str, delivery, base_url: str) -> st
         if not is_trackable_url(original_href):
             return match.group(0)
 
+        tracked_urls.append(original_href)
+
         tracked_url = f"{click_base}?url={quote(original_href, safe='')}"
         return f"{prefix}{quote_char}{tracked_url}{quote_char}"
 
-    return pattern.sub(replace_href, html_content)
+    rendered_html = pattern.sub(replace_href, html_content)
+
+    # odstraníme duplicity, ale zachováme pořadí
+    unique_tracked_urls = list(dict.fromkeys(tracked_urls))
+
+    return rendered_html, unique_tracked_urls
 
 def find_recent_same_url_click(delivery, target_url, now, window_seconds=30):
     threshold = now - timedelta(seconds=window_seconds)
@@ -1520,13 +1531,16 @@ def rozesilac_send(request):
                     rendered_html_body = Template(campaign.html_body).render(template_context)
 
                      # přepsání odkazů na trackovací redirect
-                    rendered_html_body = add_click_tracking_to_html(rendered_html_body, delivery, base_url)
+                    rendered_html_body, tracked_urls = add_click_tracking_to_html(rendered_html_body, delivery, base_url)
 
                     text_template = campaign.text_body.strip() if campaign.text_body else ""
                     if text_template:
                         rendered_text_body = Template(text_template).render(template_context)
                     else:
                         rendered_text_body = "Tento email obsahuje HTML verzi zprávy."
+
+                    for url in tracked_urls:
+                        EmailCampaignTrackedLink.objects.get_or_create(campaign=campaign, url=url,)
 
                     # --------------------------------------------------
                     # DEV = klasický Django email backend
@@ -1668,6 +1682,8 @@ def rozesilac_campaign_detail(request, campaign_id):
     confirmed_clicked_delivery_count = 0
     confirmed_unique_click_count_total = 0
 
+    confirmed_clicked_urls_all = []
+
     for delivery in deliveries:
         all_events = list(delivery.click_events.all())
 
@@ -1680,6 +1696,8 @@ def rozesilac_campaign_detail(request, campaign_id):
             if e.original_url not in seen_urls:
                 seen_urls.add(e.original_url)
                 unique_urls.append(e.original_url)
+            
+            confirmed_clicked_urls_all.append(e.original_url)
 
         delivery.human_click_events_for_ui = human_events
         delivery.clicked_urls_for_ui = unique_urls
@@ -1693,6 +1711,17 @@ def rozesilac_campaign_detail(request, campaign_id):
 
     click_rate_percent = round((confirmed_clicked_delivery_count / sent_count) * 100, 1) if sent_count else 0
 
+    clicked_url_counter = Counter(confirmed_clicked_urls_all)
+
+    tracked_links_stats = []
+    for tracked_link in campaign.tracked_links.all():
+        tracked_links_stats.append({
+            "url": tracked_link.url,
+            "click_count": clicked_url_counter.get(tracked_link.url, 0),
+        })
+
+    tracked_links_stats.sort(key=lambda x: (-x["click_count"], x["url"]))
+
     return render(
         request,
         "pojistenci/rozesilac/campaign_detail.html",
@@ -1705,6 +1734,7 @@ def rozesilac_campaign_detail(request, campaign_id):
             "clicked_delivery_count": confirmed_clicked_delivery_count,
             "total_unique_click_count": confirmed_unique_click_count_total,
             "click_rate_percent": click_rate_percent,
+            "tracked_links_stats": tracked_links_stats,
         },
     )
 

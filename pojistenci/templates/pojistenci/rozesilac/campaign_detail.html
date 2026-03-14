@@ -37,6 +37,37 @@
   <p><strong>Unikátní kliky celkem:</strong> {{ total_unique_click_count }}</p>
 </div>
 
+<p style="margin: 18px 0 10px 0;">
+  <button type="button" class="detail-btn" onclick="toggleTrackedLinks()">
+    Trackované odkazy
+  </button>
+</p>
+
+<div id="tracked-links-box" style="display: none; margin-bottom: 22px;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Odkaz</th>
+        <th>Počet kliků</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in tracked_links_stats %}
+        <tr>
+          <td style="word-break: break-word;">
+            <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.url }}</a>
+          </td>
+          <td>{{ item.click_count }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="2">V kampani nejsou žádné trackované odkazy.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
 <style>
   .click-modal-overlay {
     display: none;
@@ -104,7 +135,7 @@
         <th>První klik</th>
         <th>Poslední klik</th>
         <th>Kliknuté URL</th>
-        <th>Akce</th>
+        <th>Technické detaily</th>
         <th>Chyba</th>
       </tr>
     </thead>
@@ -243,6 +274,17 @@
   {% endfor %}
 
   <script>
+    function toggleTrackedLinks() {
+      const box = document.getElementById('tracked-links-box');
+      if (!box) return;
+
+      if (box.style.display === 'none' || box.style.display === '') {
+        box.style.display = 'block';
+      } else {
+        box.style.display = 'none';
+      }
+    }
+
     function openClickModal(id) {
       const modal = document.getElementById(id);
       if (modal) {

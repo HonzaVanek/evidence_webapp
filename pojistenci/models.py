@@ -114,7 +114,7 @@ class EmailDelivery(models.Model):
     sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    tracking_token = models.CharField(max_length=64, unique=True, db_index=True, blank=True)
+    tracking_token = models.CharField(max_length=64, unique=True, db_index=True, blank=True, default="")
     clicked_at = models.DateTimeField(null=True, blank=True)
     click_count = models.PositiveIntegerField(default=0)
     unique_click_count = models.PositiveIntegerField(default=0)
@@ -129,6 +129,21 @@ class EmailDelivery(models.Model):
 
     def __str__(self) -> str:
         return f"{self.to_email} - {self.status}"
+    
+class EmailCampaignTrackedLink(models.Model):
+    campaign = models.ForeignKey(
+        "EmailCampaign",
+        on_delete=models.CASCADE,
+        related_name="tracked_links",
+    )
+    url = models.TextField()
+
+    class Meta:
+        unique_together = ("campaign", "url")
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.url
 
 class EmailClickEvent(models.Model):
     delivery = models.ForeignKey(
