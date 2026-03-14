@@ -32,15 +32,21 @@
 </div>
 
 <div class="template-form-row">
-  <p><strong>Doručení s nějakým klikem:</strong> {{ clicked_delivery_count }}</p>
-  <p><strong>Celkem kliků:</strong> {{ total_click_count }}</p>
+  <p><strong>Doručení s nějakým requestem:</strong> {{ clicked_delivery_count }}</p>
+  <p><strong>Doručení s unikátním klikem:</strong> {{ unique_clicked_delivery_count }}</p>
+  <p><strong>Requesty celkem:</strong> {{ total_click_count }}</p>
+  <p><strong>Unikátní kliky celkem:</strong> {{ total_unique_click_count }}</p>
+</div>
+
+<div class="template-form-row">
+  <p><strong>Nepodezřelé kliky:</strong> {{ human_like_click_count }}</p>
+  <p><strong>Podezřelé kliky:</strong> {{ suspected_bot_click_count }}</p>
+  <p><strong>Z toho deduplikované:</strong> {{ duplicate_click_count }}</p>
 </div>
 
 <div class="template-form-row">
   <p><strong>Doručení s nepodezřelým klikem:</strong> {{ human_like_delivery_count }}</p>
-  <p><strong>Nepodezřelé kliky:</strong> {{ human_like_click_count }}</p>
   <p><strong>Doručení s podezřelým klikem:</strong> {{ suspected_bot_delivery_count }}</p>
-  <p><strong>Podezřelé kliky:</strong> {{ suspected_bot_click_count }}</p>
 </div>
 
 <h3>Doručení</h3>
@@ -53,9 +59,9 @@
         <th>Jméno</th>
         <th>Status</th>
         <th>Odesláno</th>
-        <th>Nějaký klik</th>
-        <th>Počet kliků</th>
-        <th>První klik</th>
+        <th>Requesty</th>
+        <th>Unikátní kliky</th>
+        <th>První request</th>
         <th>Nepodezřelý klik</th>
         <th>Podezřelý klik</th>
         <th>Chyba</th>
@@ -74,14 +80,8 @@
               -
             {% endif %}
           </td>
-          <td>
-            {% if d.click_count > 0 %}
-              ✓
-            {% else %}
-              -
-            {% endif %}
-          </td>
           <td>{{ d.click_count }}</td>
+          <td>{{ d.unique_click_count }}</td>
           <td>
             {% if d.clicked_at %}
               {{ d.clicked_at|date:"d.m.Y H:i:s" }}

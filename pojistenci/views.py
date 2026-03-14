@@ -44,6 +44,7 @@ from io import TextIOWrapper
 import html
 import re
 from urllib.parse import quote, unquote, urlparse
+from datetime import timedelta
 
 
 # Create your views here.
@@ -1320,6 +1321,7 @@ def is_suspected_bot_click(delivery, user_agent: str, event_time):
         "crawler",
         "bot",
         "spider",
+        "headless",
         "bingpreview",
     ]
 
@@ -1332,7 +1334,7 @@ def is_suspected_bot_click(delivery, user_agent: str, event_time):
         if diff < 0:
             return True
 
-        if diff <= 60:
+        if diff <= 15:  # velmi rychlé kliknutí po odeslání může být podezřelé
             return True
 
     return False
@@ -1365,6 +1367,15 @@ def add_click_tracking_to_html(html_content: str, delivery, base_url: str) -> st
 
     return pattern.sub(replace_href, html_content)
 
+def find_recent_duplicate_click(delivery, target_url, now, window_seconds=5):
+    threshold = now - timedelta(seconds=window_seconds)
+
+    return EmailClickEvent.objects.filter(
+        delivery=delivery,
+        original_url=target_url,
+        created_at__gte=threshold,
+    ).order_by("-created_at").first()
+
 # samotné trackování kliků - tento view bude cílem všech odkazů v rozesílaných emailech, a bude zaznamenávat kliknutí do databáze a pak přesměrovávat uživatele na původní URL
 def rozesilac_click_tracking(request, token):
     delivery = get_object_or_404(EmailDelivery, tracking_token=token)
@@ -1377,7 +1388,17 @@ def rozesilac_click_tracking(request, token):
 
     now = timezone.now()
     user_agent = request.META.get("HTTP_USER_AGENT", "")
+    ip_address = get_client_ip(request)
     suspected_bot = is_suspected_bot_click(delivery, user_agent, now)
+
+    recent_duplicate = find_recent_duplicate_click(
+        delivery=delivery,
+        target_url=target_url,
+        now=now,
+        window_seconds=5,
+    )
+
+    is_duplicate = recent_duplicate is not None
 
     update_fields = ["click_count"]
     delivery.click_count += 1
@@ -1386,14 +1407,20 @@ def rozesilac_click_tracking(request, token):
         delivery.clicked_at = now
         update_fields.append("clicked_at")
 
+    # unikátní klik započítáme jen pokud to není deduplikační dvoják
+    if not is_duplicate:
+        delivery.unique_click_count += 1
+        update_fields.append("unique_click_count")
+
     delivery.save(update_fields=update_fields)
 
     EmailClickEvent.objects.create(
         delivery=delivery,
         original_url=target_url,
         user_agent=user_agent,
-        ip_address=get_client_ip(request),
-        is_suspected_bot=suspected_bot,
+        ip_address=ip_address,
+        is_suspected_bot=suspected_bot or is_duplicate,
+        is_duplicate=is_duplicate,
     )
 
     return redirect(target_url)
@@ -1622,12 +1649,16 @@ def rozesilac_campaign_detail(request, campaign_id):
     queued_count = deliveries.filter(status="queued").count()
 
     clicked_delivery_count = deliveries.filter(click_count__gt=0).count()
+    unique_clicked_delivery_count = deliveries.filter(unique_click_count__gt=0).count()
+
     total_click_count = deliveries.aggregate(total=Sum("click_count"))["total"] or 0
+    total_unique_click_count = deliveries.aggregate(total=Sum("unique_click_count"))["total"] or 0
 
     click_events = EmailClickEvent.objects.filter(delivery__campaign=campaign)
 
     suspected_bot_click_count = click_events.filter(is_suspected_bot=True).count()
     human_like_click_count = click_events.filter(is_suspected_bot=False).count()
+    duplicate_click_count = click_events.filter(is_duplicate=True).count()
 
     suspected_bot_delivery_count = deliveries.filter(has_suspected_bot_click=True).count()
     human_like_delivery_count = deliveries.filter(has_human_like_click=True).count()
@@ -1642,9 +1673,12 @@ def rozesilac_campaign_detail(request, campaign_id):
             "failed_count": failed_count,
             "queued_count": queued_count,
             "clicked_delivery_count": clicked_delivery_count,
+            "unique_clicked_delivery_count": unique_clicked_delivery_count,
             "total_click_count": total_click_count,
+            "total_unique_click_count": total_unique_click_count,
             "suspected_bot_click_count": suspected_bot_click_count,
             "human_like_click_count": human_like_click_count,
+            "duplicate_click_count": duplicate_click_count,
             "suspected_bot_delivery_count": suspected_bot_delivery_count,
             "human_like_delivery_count": human_like_delivery_count,
         },

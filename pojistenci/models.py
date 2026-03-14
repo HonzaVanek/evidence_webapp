@@ -117,6 +117,7 @@ class EmailDelivery(models.Model):
     tracking_token = models.CharField(max_length=64, unique=True, db_index=True, blank=True)
     clicked_at = models.DateTimeField(null=True, blank=True)
     click_count = models.PositiveIntegerField(default=0)
+    unique_click_count = models.PositiveIntegerField(default=0)
 
     class Meta:
         indexes = [models.Index(fields=["campaign", "status"]), models.Index(fields=["to_email"]),]
@@ -140,6 +141,7 @@ class EmailClickEvent(models.Model):
     user_agent = models.TextField(blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     is_suspected_bot = models.BooleanField(default=False)
+    is_duplicate = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]
