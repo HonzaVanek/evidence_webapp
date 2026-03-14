@@ -1336,7 +1336,7 @@ def is_suspected_bot_click(delivery, user_agent: str, event_time):
         # konzervativní okno po odeslání:
         # první technické skeny se často dějí krátce po odeslání,
         # takže radši víc přitvrdíme, než abychom hlásili falešný klik
-        if diff <= 120:
+        if diff <= 30:
             return True
 
     return False
