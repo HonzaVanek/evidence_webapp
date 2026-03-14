@@ -37,6 +37,58 @@
   <p><strong>Unikátní kliky celkem:</strong> {{ total_unique_click_count }}</p>
 </div>
 
+<style>
+  .click-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 9999;
+    padding: 24px;
+    overflow-y: auto;
+  }
+
+  .click-modal-window {
+    background: #fff;
+    max-width: 1200px;
+    margin: 40px auto;
+    border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+  }
+
+  .click-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .click-modal-header h3 {
+    margin: 0;
+  }
+
+  .click-modal-close {
+    border: none;
+    background: transparent;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .click-modal-body {
+    padding: 20px;
+  }
+
+  .detail-btn {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+</style>
+
 <h3>Doručení</h3>
 
 {% if deliveries %}
@@ -70,13 +122,15 @@
             {% endif %}
           </td>
           <td>
-            {% if d.unique_click_count > 0 %}
+            {% if d.confirmed_unique_click_count_for_ui > 0 %}
               ✓
+            {% elif d.has_suspected_bot_click %}
+              ?
             {% else %}
               -
             {% endif %}
           </td>
-          <td>{{ d.unique_click_count }}</td>
+          <td>{{ d.confirmed_unique_click_count_for_ui }}</td>
           <td>
             {% if d.first_human_click_at_for_ui %}
               {{ d.first_human_click_at_for_ui|date:"d.m.Y H:i:s" }}
@@ -124,11 +178,19 @@
   </table>
 
   {% for d in deliveries %}
-    <div id="click-modal-{{ d.id }}" class="click-modal-overlay" onclick="closeClickModalOnOverlay(event, 'click-modal-{{ d.id }}')">
+    <div
+      id="click-modal-{{ d.id }}"
+      class="click-modal-overlay"
+      onclick="closeClickModalOnOverlay(event, 'click-modal-{{ d.id }}')"
+    >
       <div class="click-modal-window">
         <div class="click-modal-header">
           <h3>Technický detail doručení</h3>
-          <button type="button" class="click-modal-close" onclick="closeClickModal('click-modal-{{ d.id }}')">×</button>
+          <button
+            type="button"
+            class="click-modal-close"
+            onclick="closeClickModal('click-modal-{{ d.id }}')"
+          >×</button>
         </div>
 
         <div class="click-modal-body">
@@ -136,7 +198,8 @@
           <p><strong>Jméno:</strong> {{ d.to_name|default:"-" }}</p>
           <p><strong>Status:</strong> {{ d.status }}</p>
           <p><strong>Technické requesty celkem:</strong> {{ d.click_count }}</p>
-          <p><strong>Unikátní kliky:</strong> {{ d.unique_click_count }}</p>
+          <p><strong>Technické unikátní URL:</strong> {{ d.unique_click_count }}</p>
+          <p><strong>Potvrzené unikátní kliky:</strong> {{ d.confirmed_unique_click_count_for_ui }}</p>
 
           {% if d.click_events.all %}
             <table class="table" style="margin-top: 10px;">
@@ -178,65 +241,6 @@
       </div>
     </div>
   {% endfor %}
-
-  <style>
-    .detail-btn {
-      padding: 6px 10px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      background: #2a7bd1;
-      color: #fff;
-      font-size: 14px;
-    }
-
-    .detail-btn:hover {
-      opacity: 0.92;
-    }
-
-    .click-modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.45);
-      z-index: 9999;
-      padding: 24px;
-      overflow-y: auto;
-    }
-
-    .click-modal-window {
-      background: #fff;
-      max-width: 1200px;
-      margin: 40px auto;
-      border-radius: 10px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
-      overflow: hidden;
-    }
-
-    .click-modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 20px;
-      border-bottom: 1px solid #ddd;
-    }
-
-    .click-modal-header h3 {
-      margin: 0;
-    }
-
-    .click-modal-close {
-      border: none;
-      background: transparent;
-      font-size: 28px;
-      line-height: 1;
-      cursor: pointer;
-    }
-
-    .click-modal-body {
-      padding: 20px;
-    }
-  </style>
 
   <script>
     function openClickModal(id) {

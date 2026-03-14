@@ -1315,7 +1315,6 @@ def is_suspected_bot_click(delivery, user_agent: str, event_time):
         "safelinks",
         "defender",
         "exchange",
-        "outlook",
         "urlscan",
         "crawler",
         "bot",
@@ -1330,10 +1329,14 @@ def is_suspected_bot_click(delivery, user_agent: str, event_time):
     if delivery.sent_at:
         diff = (event_time - delivery.sent_at).total_seconds()
 
+        # request ještě před uloženým odesláním = velmi podezřelé
         if diff < 0:
             return True
 
-        if diff <= 15:  # velmi rychlé kliknutí po odeslání může být podezřelé
+        # konzervativní okno po odeslání:
+        # první technické skeny se často dějí krátce po odeslání,
+        # takže radši víc přitvrdíme, než abychom hlásili falešný klik
+        if diff <= 120:
             return True
 
     return False
@@ -1397,26 +1400,12 @@ def rozesilac_click_tracking(request, token):
 
     had_previous_click_for_url = has_any_previous_click_for_url(delivery, target_url)
 
-    recent_same_url_click = find_recent_same_url_click(
-        delivery=delivery,
-        target_url=target_url,
-        now=now,
-        window_seconds=30,
-    )
-
     is_duplicate = had_previous_click_for_url
 
+    # Podezřelost určujeme jen z vlastností requestu a času vůči odeslání.
+    # NEDĚLÁME závěr podle změny IP/UA proti předchozímu eventu,
+    # protože právě ten další event může být reálný uživatel.
     suspected_bot = is_suspected_bot_click(delivery, user_agent, now)
-
-    if recent_same_url_click:
-        previous_ua = (recent_same_url_click.user_agent or "").strip()
-        previous_ip = (recent_same_url_click.ip_address or "").strip()
-
-        current_ua = (user_agent or "").strip()
-        current_ip = (ip_address or "").strip()
-
-        if previous_ua != current_ua or previous_ip != current_ip:
-            suspected_bot = True
 
     update_fields = ["click_count"]
     delivery.click_count += 1
@@ -1425,7 +1414,7 @@ def rozesilac_click_tracking(request, token):
         delivery.clicked_at = now
         update_fields.append("clicked_at")
 
-    # unikátní klik počítáme jen jednou pro každou URL v rámci delivery
+    # technickou unikátní URL počítáme jen jednou pro každou cílovou URL
     if not had_previous_click_for_url:
         delivery.unique_click_count += 1
         update_fields.append("unique_click_count")
@@ -1643,8 +1632,6 @@ def rozesilac_send(request):
     )
 
 
-from django.db.models import Exists, OuterRef, Prefetch, Sum
-
 @staff_member_required
 def rozesilac_campaign_detail(request, campaign_id):
     campaign = get_object_or_404(EmailCampaign, id=campaign_id)
@@ -1678,16 +1665,14 @@ def rozesilac_campaign_detail(request, campaign_id):
     failed_count = deliveries.filter(status="failed").count()
     queued_count = deliveries.filter(status="queued").count()
 
-    clicked_delivery_count = deliveries.filter(unique_click_count__gt=0).count()
-    total_unique_click_count = deliveries.aggregate(total=Sum("unique_click_count"))["total"] or 0
+    confirmed_clicked_delivery_count = 0
+    confirmed_unique_click_count_total = 0
 
-    click_rate_percent = round((clicked_delivery_count / sent_count) * 100, 1) if sent_count else 0
-
-    # dopočítáme data pro pohodlné zobrazení v šabloně
     for delivery in deliveries:
         all_events = list(delivery.click_events.all())
 
         human_events = [e for e in all_events if not e.is_suspected_bot]
+
         unique_urls = []
         seen_urls = set()
 
@@ -1698,8 +1683,15 @@ def rozesilac_campaign_detail(request, campaign_id):
 
         delivery.human_click_events_for_ui = human_events
         delivery.clicked_urls_for_ui = unique_urls
+        delivery.confirmed_unique_click_count_for_ui = len(unique_urls)
         delivery.first_human_click_at_for_ui = human_events[0].created_at if human_events else None
         delivery.last_human_click_at_for_ui = human_events[-1].created_at if human_events else None
+
+        if unique_urls:
+            confirmed_clicked_delivery_count += 1
+            confirmed_unique_click_count_total += len(unique_urls)
+
+    click_rate_percent = round((confirmed_clicked_delivery_count / sent_count) * 100, 1) if sent_count else 0
 
     return render(
         request,
@@ -1710,8 +1702,8 @@ def rozesilac_campaign_detail(request, campaign_id):
             "sent_count": sent_count,
             "failed_count": failed_count,
             "queued_count": queued_count,
-            "clicked_delivery_count": clicked_delivery_count,
-            "total_unique_click_count": total_unique_click_count,
+            "clicked_delivery_count": confirmed_clicked_delivery_count,
+            "total_unique_click_count": confirmed_unique_click_count_total,
             "click_rate_percent": click_rate_percent,
         },
     )
