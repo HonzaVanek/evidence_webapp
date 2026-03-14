@@ -32,7 +32,8 @@
 </div>
 
 <div class="template-form-row">
-  <p><strong>Doručení s klikem:</strong> {{ clicked_delivery_count }}</p>
+  <p><strong>Klikli alespoň na jeden odkaz:</strong> {{ clicked_delivery_count }}</p>
+  <p><strong>Míra prokliku:</strong> {{ click_rate_percent }} %</p>
   <p><strong>Unikátní kliky celkem:</strong> {{ total_unique_click_count }}</p>
 </div>
 
@@ -51,7 +52,7 @@
         <th>První klik</th>
         <th>Poslední klik</th>
         <th>Kliknuté URL</th>
-        <th>Detail</th>
+        <th>Akce</th>
         <th>Chyba</th>
       </tr>
     </thead>
@@ -104,63 +105,172 @@
             {% endif %}
           </td>
           <td>
-            <details>
-              <summary>Zobrazit</summary>
-              <div style="margin-top: 10px; min-width: 420px;">
-                <p><strong>Technické requesty celkem:</strong> {{ d.click_count }}</p>
-                <p><strong>Nepodezřelý klik:</strong> {% if d.has_human_like_click %}ano{% else %}ne{% endif %}</p>
-                <p><strong>Podezřelý klik:</strong> {% if d.has_suspected_bot_click %}ano{% else %}ne{% endif %}</p>
-
-                {% if d.click_events.all %}
-                  <table class="table" style="margin-top: 10px;">
-                    <thead>
-                      <tr>
-                        <th>Čas</th>
-                        <th>URL</th>
-                        <th>Podezřelý</th>
-                        <th>Duplicitní</th>
-                        <th>IP</th>
-                        <th>User-Agent</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for e in d.click_events.all %}
-                        <tr>
-                          <td>{{ e.created_at|date:"d.m.Y H:i:s" }}</td>
-                          <td style="word-break: break-word;">
-                            <a href="{{ e.original_url }}" target="_blank" rel="noopener">
-                              {{ e.original_url }}
-                            </a>
-                          </td>
-                          <td>{% if e.is_suspected_bot %}ano{% else %}ne{% endif %}</td>
-                          <td>{% if e.is_duplicate %}ano{% else %}ne{% endif %}</td>
-                          <td>{{ e.ip_address|default:"-" }}</td>
-                          <td style="word-break: break-word;">{{ e.user_agent|default:"-" }}</td>
-                        </tr>
-                      {% empty %}
-                        <tr>
-                          <td colspan="6">Žádné klik eventy.</td>
-                        </tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
-                {% endif %}
-              </div>
-            </details>
+            {% if d.click_events.all %}
+              <button
+                type="button"
+                class="detail-btn"
+                onclick="openClickModal('click-modal-{{ d.id }}')"
+              >
+                Detail
+              </button>
+            {% else %}
+              -
+            {% endif %}
           </td>
           <td>{{ d.error|default:"-" }}</td>
         </tr>
       {% endfor %}
     </tbody>
   </table>
+
+  {% for d in deliveries %}
+    <div id="click-modal-{{ d.id }}" class="click-modal-overlay" onclick="closeClickModalOnOverlay(event, 'click-modal-{{ d.id }}')">
+      <div class="click-modal-window">
+        <div class="click-modal-header">
+          <h3>Technický detail doručení</h3>
+          <button type="button" class="click-modal-close" onclick="closeClickModal('click-modal-{{ d.id }}')">×</button>
+        </div>
+
+        <div class="click-modal-body">
+          <p><strong>Email:</strong> {{ d.to_email }}</p>
+          <p><strong>Jméno:</strong> {{ d.to_name|default:"-" }}</p>
+          <p><strong>Status:</strong> {{ d.status }}</p>
+          <p><strong>Technické requesty celkem:</strong> {{ d.click_count }}</p>
+          <p><strong>Unikátní kliky:</strong> {{ d.unique_click_count }}</p>
+
+          {% if d.click_events.all %}
+            <table class="table" style="margin-top: 10px;">
+              <thead>
+                <tr>
+                  <th>Čas</th>
+                  <th>URL</th>
+                  <th>Podezřelý</th>
+                  <th>Duplicitní</th>
+                  <th>IP</th>
+                  <th>User-Agent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for e in d.click_events.all %}
+                  <tr>
+                    <td>{{ e.created_at|date:"d.m.Y H:i:s" }}</td>
+                    <td style="word-break: break-word;">
+                      <a href="{{ e.original_url }}" target="_blank" rel="noopener">
+                        {{ e.original_url }}
+                      </a>
+                    </td>
+                    <td>{% if e.is_suspected_bot %}ano{% else %}ne{% endif %}</td>
+                    <td>{% if e.is_duplicate %}ano{% else %}ne{% endif %}</td>
+                    <td>{{ e.ip_address|default:"-" }}</td>
+                    <td style="word-break: break-word;">{{ e.user_agent|default:"-" }}</td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="6">Žádné klik eventy.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p>Žádné klik eventy.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
+  <style>
+    .detail-btn {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #2a7bd1;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .detail-btn:hover {
+      opacity: 0.92;
+    }
+
+    .click-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 9999;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .click-modal-window {
+      background: #fff;
+      max-width: 1200px;
+      margin: 40px auto;
+      border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+      overflow: hidden;
+    }
+
+    .click-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .click-modal-header h3 {
+      margin: 0;
+    }
+
+    .click-modal-close {
+      border: none;
+      background: transparent;
+      font-size: 28px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .click-modal-body {
+      padding: 20px;
+    }
+  </style>
+
+  <script>
+    function openClickModal(id) {
+      const modal = document.getElementById(id);
+      if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeClickModal(id) {
+      const modal = document.getElementById(id);
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    }
+
+    function closeClickModalOnOverlay(event, id) {
+      if (event.target.id === id) {
+        closeClickModal(id);
+      }
+    }
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        document.querySelectorAll('.click-modal-overlay').forEach(function(modal) {
+          modal.style.display = 'none';
+        });
+        document.body.style.overflow = '';
+      }
+    });
+  </script>
 {% else %}
   <p class="muted">K této kampani zatím nejsou žádná doručení.</p>
 {% endif %}
-
-<div class="template-form-row" style="margin-top: 20px;">
-  <p><strong>Nepodezřelé kliky celkem:</strong> {{ human_like_click_count }}</p>
-  <p><strong>Podezřelé kliky celkem:</strong> {{ suspected_bot_click_count }}</p>
-  <p><strong>Doručení s nepodezřelým klikem:</strong> {{ human_like_delivery_count }}</p>
-  <p><strong>Doručení s podezřelým klikem:</strong> {{ suspected_bot_delivery_count }}</p>
-</div>
 {% endblock rozesilac_content %}

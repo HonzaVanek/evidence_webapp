@@ -1681,13 +1681,7 @@ def rozesilac_campaign_detail(request, campaign_id):
     clicked_delivery_count = deliveries.filter(unique_click_count__gt=0).count()
     total_unique_click_count = deliveries.aggregate(total=Sum("unique_click_count"))["total"] or 0
 
-    click_events = EmailClickEvent.objects.filter(delivery__campaign=campaign)
-
-    suspected_bot_click_count = click_events.filter(is_suspected_bot=True).count()
-    human_like_click_count = click_events.filter(is_suspected_bot=False).count()
-
-    suspected_bot_delivery_count = deliveries.filter(has_suspected_bot_click=True).count()
-    human_like_delivery_count = deliveries.filter(has_human_like_click=True).count()
+    click_rate_percent = round((clicked_delivery_count / sent_count) * 100, 1) if sent_count else 0
 
     # dopočítáme data pro pohodlné zobrazení v šabloně
     for delivery in deliveries:
@@ -1718,10 +1712,7 @@ def rozesilac_campaign_detail(request, campaign_id):
             "queued_count": queued_count,
             "clicked_delivery_count": clicked_delivery_count,
             "total_unique_click_count": total_unique_click_count,
-            "suspected_bot_click_count": suspected_bot_click_count,
-            "human_like_click_count": human_like_click_count,
-            "suspected_bot_delivery_count": suspected_bot_delivery_count,
-            "human_like_delivery_count": human_like_delivery_count,
+            "click_rate_percent": click_rate_percent,
         },
     )
 
