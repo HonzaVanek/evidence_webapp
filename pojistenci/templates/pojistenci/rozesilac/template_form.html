@@ -100,6 +100,18 @@
   </div>
 
   <div class="template-form-row">
+  <label for="{{ form.preheader.id_for_label }}">Text náhledu emailu</label>
+  {{ form.preheader }}
+  <p class="muted">
+    Tento text se zobrazuje v náhledu emailu v inboxu (např. Seznam nebo Outlook to tak má).
+    Když ho nevyplníš, některé klienty mohou místo něj zobrazit třeba odkaz nebo jiný nevhodný kus HTML.
+  </p>
+  {% for e in form.preheader.errors %}
+    <div class="form-errors">{{ e }}</div>
+  {% endfor %}
+</div>
+
+  <div class="template-form-row">
     <label for="{{ form.html_body.id_for_label }}">HTML tělo emailu</label>
     {{ form.html_body }}
     {% for e in form.html_body.errors %}

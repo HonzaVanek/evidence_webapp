@@ -178,10 +178,11 @@ def html_to_plain_text(html: str) -> str:
 class EmailTemplateForm(forms.ModelForm):
     class Meta:
         model = EmailTemplate
-        fields = ["name", "subject", "html_body", "text_body"]
+        fields = ["name", "subject", "preheader", "html_body", "text_body"]
         widgets = {
             "name": forms.TextInput(attrs={"placeholder": "Např. Newsletter březen 2026"}),
             "subject": forms.TextInput(attrs={"placeholder": "Předmět emailu"}),
+            "preheader": forms.Textarea(attrs={"rows": 1, "placeholder": "Krátký text náhledu emailu v inboxu"}),
             "html_body": forms.Textarea(attrs={"rows": 18, "required": False}),
             "text_body": forms.Textarea(attrs={"rows": 8}),
         }

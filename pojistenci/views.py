@@ -1489,7 +1489,7 @@ def rozesilac_click_tracking(request, token):
         window_seconds=8,
         min_distinct_urls=3,
     )
-    
+
     return redirect(target_url)
 
 
@@ -1578,7 +1578,16 @@ def rozesilac_send(request):
 
                     rendered_subject = Template(campaign.subject).render(template_context)
                     rendered_html_body = Template(campaign.html_body).render(template_context)
+                    preheader = (template.preheader or "").strip()
 
+                    if preheader:
+                        preheader_html = f"""
+                    <div style="display:none;font-size:1px;color:#fff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
+                    {preheader}
+                    &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
+                    </div>
+                    """
+                        rendered_html_body = preheader_html + rendered_html_body
                      # přepsání odkazů na trackovací redirect
                     rendered_html_body, tracked_urls = add_click_tracking_to_html(rendered_html_body, delivery, base_url)
 

@@ -80,7 +80,7 @@ class EmailTemplate(models.Model):
     text_body = models.TextField(blank=True, help_text="Volitelné: plain-text fallback.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    preheader = models.CharField(max_length=200, blank=True, help_text="Krátký text zobrazovaný jako náhled emailu v inboxu")
     def __str__(self) -> str:
         return self.name
 
