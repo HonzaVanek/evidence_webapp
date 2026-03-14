@@ -1280,6 +1280,28 @@ def rozesilac_contact_edit(request, contact_id):
     )
 
 
+def add_preheader_to_html(html_content: str, preheader: str) -> str:
+    if not html_content or not preheader:
+        return html_content
+
+    preheader_html = (
+        '<div style="display:none;font-size:1px;color:#fff;line-height:1px;'
+        'max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">'
+        f'{html.escape(preheader)}'
+        '&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;'
+        '&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;'
+        '</div>'
+    )
+
+    lowered = html_content.lower()
+    body_pos = lowered.find("<body")
+    if body_pos != -1:
+        body_end = lowered.find(">", body_pos)
+        if body_end != -1:
+            return html_content[:body_end + 1] + preheader_html + html_content[body_end + 1:]
+
+    return preheader_html + html_content
+
 
 # pomocné funkce pro tracking kampaní a odesílání emailů:
 def is_trackable_url(url: str) -> bool:
@@ -1514,6 +1536,7 @@ def rozesilac_send(request):
                 template=template,
                 created_by=request.user,
                 subject=template.subject,
+                preheader=template.preheader,
                 html_body=template.html_body,
                 text_body=template.text_body,
                 is_test=is_test,
@@ -1578,16 +1601,11 @@ def rozesilac_send(request):
 
                     rendered_subject = Template(campaign.subject).render(template_context)
                     rendered_html_body = Template(campaign.html_body).render(template_context)
-                    preheader = (template.preheader or "").strip()
-
+                    
+                    preheader = (campaign.preheader or "").strip()
                     if preheader:
-                        preheader_html = f"""
-                    <div style="display:none;font-size:1px;color:#fff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
-                    {preheader}
-                    &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
-                    </div>
-                    """
-                        rendered_html_body = preheader_html + rendered_html_body
+                        rendered_html_body = add_preheader_to_html(rendered_html_body, preheader)
+
                      # přepsání odkazů na trackovací redirect
                     rendered_html_body, tracked_urls = add_click_tracking_to_html(rendered_html_body, delivery, base_url)
 
@@ -1596,6 +1614,10 @@ def rozesilac_send(request):
                         rendered_text_body = Template(text_template).render(template_context)
                     else:
                         rendered_text_body = "Tento email obsahuje HTML verzi zprávy."
+
+
+                    if preheader:
+                        rendered_text_body = f"{preheader}\n\n{rendered_text_body}"
 
                     for url in tracked_urls:
                         EmailCampaignTrackedLink.objects.get_or_create(campaign=campaign, url=url,)
