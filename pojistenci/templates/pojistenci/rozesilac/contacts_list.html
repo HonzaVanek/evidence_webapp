@@ -141,7 +141,9 @@
       <th>Email</th>
       <th>Skupiny</th>
       <th>Aktivní</th>
-      <th></th>
+      <th>Počet doručení</th>
+      <th>Potvrzené kliky</th>
+      <th>Akce</th>
     </tr>
   </thead>
   <tbody>
@@ -158,11 +160,15 @@
           {% endfor %}
         </td>
         <td>{% if c.is_active %}Ano{% else %}Ne{% endif %}</td>
+        <td>{{ c.delivery_count_for_ui }}</td>
+        <td>{{ c.confirmed_unique_click_count_for_ui }}</td>
         <td class="actions">
+          <a href="{% url 'rozesilac_contact_detail' c.id %}">Statistiky</a>
+          |
           <a href="{% url 'rozesilac_contact_edit' c.id %}">Upravit</a>
-  |
+          |
           <form method="post" style="display:inline;">
-          {% csrf_token %}
+            {% csrf_token %}
             <input type="hidden" name="action" value="delete_contact">
             <input type="hidden" name="contact_id" value="{{ c.id }}">
             <button type="submit" onclick="return confirm('Opravdu smazat kontakt {{ c.email }}?');">Smazat</button>

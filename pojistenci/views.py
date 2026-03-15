@@ -26,6 +26,7 @@ from openpyxl import load_workbook, Workbook
 import requests
 from django.db import transaction, IntegrityError
 from django.db.models import Q, Sum, Count, Exists, OuterRef, Prefetch
+from django.db.models.deletion import ProtectedError
 from django import forms
 from rest_framework import viewsets
 from .serializers import PojistenecSerializer
@@ -1113,12 +1114,50 @@ def rozesilac_template_edit(request, template_id):
 
 
 @staff_member_required
+def rozesilac_template_duplicate(request, template_id):
+    template_obj = get_object_or_404(EmailTemplate, id=template_id)
+
+    if request.method == "POST":
+        base_name = f"{template_obj.name} (kopie)"
+        new_name = base_name
+        counter = 2
+
+        while EmailTemplate.objects.filter(name=new_name).exists():
+            new_name = f"{base_name} {counter}"
+            counter += 1
+
+        new_template = EmailTemplate.objects.create(
+            name=new_name,
+            subject=template_obj.subject,
+            preheader=template_obj.preheader,
+            html_body=template_obj.html_body,
+            text_body=template_obj.text_body,
+        )
+
+        messages.success(request, f'Šablona byla zduplikována jako "{new_template.name}".')
+        return redirect("rozesilac_templates")
+
+    return render(
+        request,
+        "pojistenci/rozesilac/template_duplicate.html",
+        {"template_obj": template_obj},
+    )
+
+
+@staff_member_required
 def rozesilac_template_delete(request, template_id):
     template_obj = get_object_or_404(EmailTemplate, id=template_id)
 
     if request.method == "POST":
-        template_obj.delete()
-        messages.success(request, "Šablona byla smazána.")
+        try:
+            template_obj.delete()
+            messages.success(request, "Šablona byla smazána.")
+        except ProtectedError:
+            messages.error(
+                request,
+                "Tuto šablonu nelze smazat, protože už byla použita v odeslané kampani. "
+                "Potřebujeme, aby historie kampaní zůstala zachována a tohle by nám rozmrdalo ty historické statistiky. Jestli tě existence té šablony sere fakt hodně, napiš mi a nějak to pořešíme :)"
+            )
         return redirect("rozesilac_templates")
 
     return render(
@@ -1240,6 +1279,40 @@ def rozesilac_contacts(request):
     contacts = Contact.objects.prefetch_related("groups").order_by("groups__name", "email").distinct()
     groups = ContactGroup.objects.all()
 
+    # --------------------------------------------------
+    # Statistiky kontaktů pro přehled v seznamu
+    # --------------------------------------------------
+
+    contact_emails = [c.email for c in contacts]
+
+    deliveries_for_contacts = (
+        EmailDelivery.objects
+        .filter(to_email__in=contact_emails)
+        .prefetch_related(
+            Prefetch(
+                "click_events",
+                queryset=EmailClickEvent.objects.order_by("created_at"),
+            )
+        )
+    )
+
+    deliveries_by_email = {}
+    for d in deliveries_for_contacts:
+        deliveries_by_email.setdefault(d.to_email, []).append(d)
+
+    for c in contacts:
+        contact_deliveries = deliveries_by_email.get(c.email, [])
+        c.delivery_count_for_ui = len(contact_deliveries)
+
+        confirmed_unique_click_count = 0
+
+        for d in contact_deliveries:
+            human_events = [e for e in d.click_events.all() if not e.is_suspected_bot]
+            unique_urls = set(e.original_url for e in human_events)
+            confirmed_unique_click_count += len(unique_urls)
+
+        c.confirmed_unique_click_count_for_ui = confirmed_unique_click_count
+
     return render(
         request,
         "pojistenci/rozesilac/contacts_list.html",
@@ -1249,6 +1322,87 @@ def rozesilac_contacts(request):
             "add_form": add_form,
             "import_form": import_form,
             "group_form": group_form,
+        },
+    )
+
+@staff_member_required
+def rozesilac_contact_detail(request, contact_id):
+    contact = get_object_or_404(Contact, id=contact_id)
+
+    human_clicks_subquery = EmailClickEvent.objects.filter(
+        delivery=OuterRef("pk"),
+        is_suspected_bot=False,
+    )
+
+    bot_clicks_subquery = EmailClickEvent.objects.filter(
+        delivery=OuterRef("pk"),
+        is_suspected_bot=True,
+    )
+
+    deliveries = (
+        EmailDelivery.objects
+        .filter(to_email=contact.email)
+        .select_related("campaign", "campaign__template")
+        .order_by("-created_at")
+        .annotate(
+            has_human_like_click=Exists(human_clicks_subquery),
+            has_suspected_bot_click=Exists(bot_clicks_subquery),
+        )
+        .prefetch_related(
+            "campaign__tracked_links",
+            Prefetch(
+                "click_events",
+                queryset=EmailClickEvent.objects.order_by("created_at"),
+            )
+        )
+    )
+
+    total_deliveries = deliveries.count()
+    sent_deliveries = deliveries.filter(status="sent").count()
+    failed_deliveries = deliveries.filter(status="failed").count()
+    clicked_campaigns_count = 0
+    confirmed_unique_click_count_total = 0
+    last_human_click_at = None
+
+    for delivery in deliveries:
+        all_events = list(delivery.click_events.all())
+        human_events = [e for e in all_events if not e.is_suspected_bot]
+
+        unique_urls = []
+        seen_urls = set()
+
+        for e in human_events:
+            if e.original_url not in seen_urls:
+                seen_urls.add(e.original_url)
+                unique_urls.append(e.original_url)
+
+        delivery.human_click_events_for_ui = human_events
+        delivery.clicked_urls_for_ui = unique_urls
+        delivery.confirmed_unique_click_count_for_ui = len(unique_urls)
+        delivery.first_human_click_at_for_ui = human_events[0].created_at if human_events else None
+        delivery.last_human_click_at_for_ui = human_events[-1].created_at if human_events else None
+
+        if unique_urls:
+            clicked_campaigns_count += 1
+            confirmed_unique_click_count_total += len(unique_urls)
+
+        if human_events:
+            candidate_last = human_events[-1].created_at
+            if last_human_click_at is None or candidate_last > last_human_click_at:
+                last_human_click_at = candidate_last
+
+    return render(
+        request,
+        "pojistenci/rozesilac/contact_detail.html",
+        {
+            "contact": contact,
+            "deliveries": deliveries,
+            "total_deliveries": total_deliveries,
+            "sent_deliveries": sent_deliveries,
+            "failed_deliveries": failed_deliveries,
+            "clicked_campaigns_count": clicked_campaigns_count,
+            "confirmed_unique_click_count_total": confirmed_unique_click_count_total,
+            "last_human_click_at": last_human_click_at,
         },
     )
 

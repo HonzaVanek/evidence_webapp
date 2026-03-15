@@ -35,11 +35,13 @@
           <td>{{ t.name }}</td>
           <td>{{ t.subject }}</td>
           <td>{{ t.updated_at|date:"d.m.Y H:i" }}</td>
-          <td class="actions">
-            <a href="{% url 'rozesilac_template_edit' t.id %}">Upravit</a>
-            |
-            <a href="{% url 'rozesilac_template_delete' t.id %}">Smazat</a>
-          </td>
+            <td class="actions">
+              <a href="{% url 'rozesilac_template_edit' t.id %}">Upravit</a>
+              |
+              <a href="{% url 'rozesilac_template_duplicate' t.id %}">Duplikovat</a>
+              |
+              <a href="{% url 'rozesilac_template_delete' t.id %}">Smazat</a>
+            </td>
         </tr>
       {% endfor %}
     </tbody>

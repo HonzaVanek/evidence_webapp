@@ -42,6 +42,7 @@ urlpatterns = [
     path("pojistenci/vychytavky/rozesilac/sablony/", views.rozesilac_templates, name="rozesilac_templates"),
     path("pojistenci/vychytavky/rozesilac/sablony/nova/", views.rozesilac_template_create, name="rozesilac_template_create"),
     path("pojistenci/vychytavky/rozesilac/sablony/<int:template_id>/upravit/", views.rozesilac_template_edit, name="rozesilac_template_edit"),
+    path("pojistenci/vychytavky/rozesilac/sablony/<int:template_id>/duplikovat/", views.rozesilac_template_duplicate, name="rozesilac_template_duplicate"),
     path("pojistenci/vychytavky/rozesilac/sablony/<int:template_id>/smazat/", views.rozesilac_template_delete, name="rozesilac_template_delete"),
     path("pojistenci/vychytavky/rozesilac/kontakty/", views.rozesilac_contacts, name="rozesilac_contacts"),
     path("pojistenci/vychytavky/rozesilac/kontakty/<int:contact_id>/upravit/", views.rozesilac_contact_edit, name="rozesilac_contact_edit"),
@@ -52,4 +53,5 @@ urlpatterns = [
     path("pojistenci/vychytavky/rozesilac/obrazky/", views.rozesilac_images, name="rozesilac_images"),
     path("pojistenci/vychytavky/rozesilac/obrazky/upload/", views.rozesilac_image_upload, name="rozesilac_image_upload"),
     path("pojistenci/vychytavky/rozesilac/unsubscribe/<uuid:token>/", views.unsubscribe_view, name="rozesilac_unsubscribe"),
+    path("pojistenci/vychytavky/rozesilac/kontakty/<int:contact_id>/", views.rozesilac_contact_detail, name="rozesilac_contact_detail"),
 ]
