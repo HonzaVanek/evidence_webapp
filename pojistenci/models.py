@@ -93,6 +93,7 @@ class EmailCampaign(models.Model):
 
     # co se poslalo (snapshot – ať to nezmění pozdější editace šablony)
     subject = models.CharField(max_length=250)
+    preheader = models.CharField(max_length=200, blank=True)
     html_body = models.TextField()
     text_body = models.TextField(blank=True)
 
