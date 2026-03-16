@@ -1,6 +1,7 @@
 {% extends "pojistenci/rozesilac/base_rozesilac.html" %}
 
 {% load static %}
+{% load l10n %}
 
 {% block title %}Rozesílač | Dashboard{% endblock title %}
 
@@ -148,12 +149,12 @@
             <div class="campaign-bar-track">
               <div
                 class="campaign-bar-fill"
-                style="width: {{ campaign.click_rate_percent_for_ui }}%;">
+                style="width: {% localize off %}{{ campaign.click_rate_width_for_ui }}{% endlocalize %}%;">
               </div>
             </div>
 
             <div class="campaign-bar-value">
-              {{ campaign.click_rate_percent_for_ui }} %
+              {% localize off %}{{ campaign.click_rate_percent_for_ui }}{% endlocalize %}%
             </div>
           </div>
         {% endfor %}
