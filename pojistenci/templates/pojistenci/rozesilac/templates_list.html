@@ -40,7 +40,7 @@
               |
               <a href="{% url 'rozesilac_template_duplicate' t.id %}">Duplikovat</a>
               |
-              <a href="{% url 'rozesilac_template_delete' t.id %}">Smazat</a>
+              <a href="{% url 'rozesilac_template_delete' t.id %}" style="background-color:#e53935;" onmouseover="this.style.backgroundColor='#c62828'" onmouseout="this.style.backgroundColor='#e53935'">Smazat</a>
             </td>
         </tr>
       {% endfor %}
