@@ -1074,6 +1074,7 @@ def rozesilac_dashboard(request):
                 confirmed_unique_click_count_total += len(unique_urls)
 
         click_rate_percent = round((clicked_delivery_count / sent_count) * 100, 1) if sent_count else 0
+        click_rate_width = max(0, min(100, int(round(click_rate_percent))))
 
         campaign.sent_count_for_ui = sent_count
         campaign.failed_count_for_ui = failed_count
@@ -1081,6 +1082,7 @@ def rozesilac_dashboard(request):
         campaign.clicked_delivery_count_for_ui = clicked_delivery_count
         campaign.confirmed_unique_click_count_total_for_ui = confirmed_unique_click_count_total
         campaign.click_rate_percent_for_ui = click_rate_percent
+        campaign.click_rate_width_for_ui = click_rate_width
 
         campaign_stats.append(campaign)
 
