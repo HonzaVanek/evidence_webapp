@@ -4,7 +4,7 @@
 
 {% block rozesilac_content %}
 <h2>Kampaně</h2>
-<p class="help-text">Seznam vytvořených kampaní + nějaké základní statistiky. Časem můžeme přidat nějaké funkce, které ukážou kdo si newsletter opravdu otevřel, případně na něco fakt kliknul apod.</p>
+<p class="help-text">Seznam vytvořených kampaní + na detailu kampaně pak statistiky kliknutí na odkazy v kampaních (nejen počty ale i kdo klikl). Statistiku prostého otevření nemáme, protože se to už moc nedělá - je to strašně nespolehlivé, protože emaily na serveru stejně třeba otevírá robot / antivir apod. a tak by se nám jako otevřené ukazovalo víc emailů než člověk opravdu otevře (děje se to i u různých mailchimpů apod., ale že je to nespolehlivý vám neřeknou :) Krom toho newslettery každej třeba otevře a pak hned zavře aniž by to četl (nechce to třeba mít jako nepřečtené v inboxu), takže nám to stejně nic neřekne. Relevantní statistika jsou ty kliknutí a ty tam máme a mělo by to fungovat (doufám :)) </p>
 {% if messages %}
 <ul class="messages">
   {% for m in messages %}
