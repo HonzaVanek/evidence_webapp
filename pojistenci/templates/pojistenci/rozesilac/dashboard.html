@@ -148,7 +148,7 @@
             <div class="campaign-bar-track">
               <div
                 class="campaign-bar-fill"
-                style="width: {% if max_recent_click_rate > 0 %}{% widthratio campaign.click_rate_percent_for_ui max_recent_click_rate 100 %}{% else %}0{% endif %}%;">
+                style="width: {{ campaign.click_rate_percent_for_ui }}%;">
               </div>
             </div>
 
