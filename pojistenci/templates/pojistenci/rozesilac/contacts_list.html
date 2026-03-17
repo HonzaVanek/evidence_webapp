@@ -133,7 +133,13 @@
 <h3>Seznam uložených kontaktů</h3>
 
 {% if contacts %}
-<div class="table-responsive">
+
+{% if contacts|length > 10 %}
+<div class="table-scroll-top" id="contacts-scroll-top">
+    <div class="table-scroll-top-inner"></div>
+</div>
+{% endif %}
+<div class="table-responsive" id="contacts-table-wrap">
 <table class="table">
   <thead>
     <tr>
@@ -180,6 +186,44 @@
   </tbody>
 </table>
 </div>
+
+{% if contacts|length > 10 %}
+    <script>
+      (function () {
+        const topScroll = document.getElementById("contacts-scroll-top");
+        const topInner = topScroll.querySelector(".table-scroll-top-inner");
+        const tableWrap = document.getElementById("contacts-table-wrap");
+        const table = tableWrap.querySelector("table");
+
+        function syncWidths() {
+          topInner.style.width = table.scrollWidth + "px";
+          topScroll.style.display = table.scrollWidth > tableWrap.clientWidth ? "block" : "none";
+        }
+
+        let syncingTop = false;
+        let syncingBottom = false;
+
+        topScroll.addEventListener("scroll", function () {
+          if (syncingBottom) return;
+          syncingTop = true;
+          tableWrap.scrollLeft = topScroll.scrollLeft;
+          syncingTop = false;
+        });
+
+        tableWrap.addEventListener("scroll", function () {
+          if (syncingTop) return;
+          syncingBottom = true;
+          topScroll.scrollLeft = tableWrap.scrollLeft;
+          syncingBottom = false;
+        });
+
+        window.addEventListener("load", syncWidths);
+        window.addEventListener("resize", syncWidths);
+        syncWidths();
+      })();
+    </script>
+{% endif %}
+
 </section>
 {% else %}
 <p class="muted">Zatím žádné kontakty.</p>
