@@ -123,6 +123,7 @@
 <h3>Doručení</h3>
 
 {% if deliveries %}
+  <div class="table-responsive">
   <table class="table">
     <thead>
       <tr>
@@ -207,6 +208,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 
   {% for d in deliveries %}
     <div

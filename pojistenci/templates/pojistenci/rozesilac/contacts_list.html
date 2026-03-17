@@ -133,6 +133,7 @@
 <h3>Seznam uložených kontaktů</h3>
 
 {% if contacts %}
+<div class="table-responsive">
 <table class="table">
   <thead>
     <tr>
@@ -178,6 +179,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 </section>
 {% else %}
 <p class="muted">Zatím žádné kontakty.</p>
